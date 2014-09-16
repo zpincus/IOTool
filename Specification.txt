@@ -1,0 +1,50 @@
+commands:
+
+wh p	wait high: uint8 pin
+wl p	wait low: uint8 pin
+wc p	wait change: uint8 pin
+dm d	delay ms: uint16 ms
+du d	delay µs: uint16 us
+pm p v	set PWM: uint8 pin  uint16 value
+sh p	set high: uint8 pin
+sl p	set low: uint8 pin
+st p	tri-state: uint8 pin
+ct b	character transmit: uint8 byte
+cr	character receive
+lo i n	loop: uint8 goto_index, uint16 num_times
+
+clear	clear program
+run n	run uint16 num_loops
+
+
+
+
+
+PWM:
+8-bit @ 62.5 kHz: OC0A (B7) and OC0B (D0)
+10-bit @ 15.625 kHz: OC1A (B5) and OC1B (B6)
+8-bit @ 31.25 kHz: OC4A (C7) and OC4D (D7)
+
+Timer/Counter0
+prescaler: 1 (62.5 ns/count)
+Mode: fast PWM
+OCR0A: user-defined
+OCR0B: user-defined
+
+Timer/Counter1
+prescaler: 1 (62.5 ns/count)
+Mode: fast PWM, 10-bit (ICR1 = 2**10, WGM13:0 bits set to 14)
+OCR1A: user-defined
+OCR1B: user-defined
+
+Timer/Counter3: prescaler = 8, 0.5 µs/count
+Mode: normal
+OCR3A: ms timer -- increment register by 2000 every time
+OCR3B: µs timer -- set to desired delay time
+OCR3C: USB task timer 60000 (30 ms) or less
+
+Timer/Counter4:
+prescaler: 2 (125 ns/count)
+Mode: PWM, 8-bit (OCR4C = 2**8)
+OCR4A: user-defined
+OCR4D: user-defined
