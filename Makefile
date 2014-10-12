@@ -6,9 +6,9 @@ F_CPU        = 16000000
 F_USB        = $(F_CPU)
 OPTIMIZATION = s
 TARGET       = IOTool
-SRC          = interpreter.c main.c platform.c usb_serial.c usb_serial_base.c $(LUFA_SRC_USB_DEVICE) $(LUFA_SRC_USBCLASS_DEVICE)
+SRC          = $(wildcard src/*.c) $(LUFA_SRC_USB_DEVICE) $(LUFA_SRC_USBCLASS_DEVICE)
 LUFA_PATH    = ../../lufa-LUFA-140302/LUFA
-CC_FLAGS     = -DUSE_LUFA_CONFIG_HEADER
+CC_FLAGS     = -DUSE_LUFA_CONFIG_HEADER -Isrc
 LD_FLAGS     =
 OBJDIR       = build
 

@@ -1,91 +1,29 @@
-#include <avr/io.h>
-#include <stdbool.h>
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <avr/pgmspace.h>
+#include <avr/interrupt.h>
 #include "interpreter.h"
 #include "usb_serial.h"
-#include "utils.h"
+#include "pins.h"
+#include "commands.h"
 
-#define PWM16_MAX (uint16_t) (1<<10)-1
-struct pin {
-    char name[3];
-    volatile uint8_t *const port;    // The output port location.
-    volatile uint8_t *const pin;    // The input port location.
-    volatile uint8_t *const ddr;     // The data direction location.
-    const uint8_t pin_mask; // mask of the relevant bit for that pin
-    volatile void *const ocr; // compare register for PWM, null for non-PWM pins
-    bool pwm16; // if true, ocr is a 16-bit integer register
-    volatile uint8_t *const tccr; // timer control register for connecting and disconnecting PWM
-    const uint8_t tccr_mask; // set high to connect the PWM
-};
-
-#ifdef ARDUINO_PIN_NAMES
-#define INIT_PIN(_ARD_NAME, _PORT, _PIN) {#_ARD_NAME, &PORT##_PORT, &PIN##_PORT, &DDR##_PORT, BIT(PORT##_PORT##_PIN), NULL, false, NULL, 0}
-#define INIT_PWM_PIN(_ARD_NAME, _PORT, _PIN, _TIMER, _CHANNEL, _16, _TCCR) {#_ARD_NAME, &PORT##_PORT, &PIN##_PORT, &DDR##_PORT, BIT(PORT##_PORT##_PIN),\
-     &OCR##_TIMER##_CHANNEL, _16, &_TCCR, BIT(COM##_TIMER##_CHANNEL##1)}
-#else
-#define INIT_PIN(_ARD_NAME, _PORT, _PIN) {#_PORT #_PIN, &PORT##_PORT, &PIN##_PORT, &DDR##_PORT, BIT(PORT##_PORT##_PIN), NULL, false, NULL, 0}
-#define INIT_PWM_PIN(_ARD_NAME, _PORT, _PIN, _TIMER, _CHANNEL, _16, _TCCR) {#_PORT #_PIN, &PORT##_PORT, &PIN##_PORT, &DDR##_PORT, BIT(PORT##_PORT##_PIN),\
-     &OCR##_TIMER##_CHANNEL, _16, &_TCCR, BIT(COM##_TIMER##_CHANNEL##1)}
-#endif
-#define INIT_PWM8_PIN(_ARD_NAME, _PORT, _PIN, _TIMER, _CHANNEL) INIT_PWM_PIN(_ARD_NAME, _PORT, _PIN, _TIMER, _CHANNEL, false, TCCR##_TIMER##A)
-#define INIT_PWM16_PIN(_ARD_NAME, _PORT, _PIN, _TIMER, _CHANNEL) INIT_PWM_PIN(_ARD_NAME, _PORT, _PIN, _TIMER, _CHANNEL, true, TCCR##_TIMER##A)
-
-struct pin pins[] = {
-    INIT_PIN(SS, B, 0),
-    INIT_PIN(SC, B, 1),
-    INIT_PIN(MO, B, 2),
-    INIT_PIN(MI, B, 3),
-    INIT_PIN(8, B, 4),
-    INIT_PWM16_PIN(9, B, 5, 1, A),
-    INIT_PWM16_PIN(10, B, 6, 1, B),
-    INIT_PWM8_PIN(11, B, 7, 0, A),
-    INIT_PIN(5, C, 6),
-    INIT_PWM8_PIN(13, C, 7, 4, A),
-    INIT_PWM8_PIN(3, D, 0, 0, B),
-    INIT_PIN(2, D, 1),
-    INIT_PIN(RX, D, 2),
-    INIT_PIN(TX, D, 3),
-    INIT_PIN(4, D, 4),
-    INIT_PIN(TL, D, 5),
-    INIT_PIN(12, D, 6),
-    INIT_PWM_PIN(6, D, 7, 4, D, false, TCCR4C),
-    INIT_PIN(7, E, 6),
-    INIT_PIN(A5, F, 0),
-    INIT_PIN(A4, F, 1),    
-    INIT_PIN(A3, F, 4),
-    INIT_PIN(A2, F, 5),
-    INIT_PIN(A1, F, 6),
-    INIT_PIN(A0, F, 7)
-};
-
-#define PIN_MAX ARRAYLEN(pins)-1
-
-#define SET_PIN_LOW(_PIN_IDX, _REGISTER) SET_MASK_LO(*(pins[_PIN_IDX]._REGISTER), pins[_PIN_IDX].pin_mask)
-#define SET_PIN_HIGH(_PIN_IDX, _REGISTER) SET_MASK_HI(*(pins[_PIN_IDX]._REGISTER), pins[_PIN_IDX].pin_mask)
-#define GET_PIN(_PIN_IDX, _REGISTER) GET_MASK(*(pins[_PIN_IDX]._REGISTER), pins[_PIN_IDX].pin_mask)
-#define ENABLE_PWM(_PIN_IDX) SET_MASK_HI(*(pins[_PIN_IDX].tccr), pins[_PIN_IDX].tccr_mask)
-#define DISABLE_PWM(_PIN_IDX) SET_MASK_LO(*(pins[_PIN_IDX].tccr), pins[_PIN_IDX].tccr_mask)
 
 volatile bool run_serial_tasks_from_isr = false;
 volatile bool running;
 volatile uint16_t ms_timer = 0;
 volatile uint16_t ms_timer_target;
 volatile bool ms_timer_done;
-#define QUIT_BYTE 33 // '!' character
+
 const char ECHO_OFF_PSTR[] PROGMEM = "\x80\xff";
 
+#define PWM16_MAX (uint16_t) (1<<10)-1
 #define MAX_PROGRAM_STEPS 256
 #define HEAP_PER_STEP 3
 #define MAX_LOOP_COMMANDS 10
 
-uint16_t steady_wait_time_half_us = 20;
-
-typedef void (*function_t)(void *);
-function_t program[MAX_PROGRAM_STEPS];
+command_t program[MAX_PROGRAM_STEPS];
 uint8_t program_heap[MAX_PROGRAM_STEPS*HEAP_PER_STEP];
 uint16_t program_size = 0; // must be uint16 to be able to hold the value of 256, indicating that program is full
 uint8_t program_counter;
@@ -116,11 +54,6 @@ ISR(TIMER3_COMPC_vect) {
     OCR3C += 30000; // fire ISR again in 15 ms (wraparound expected; works great)
 }
 
-#define MS_TIMER_MASK BIT(OCIE3A)
-#define USB_TIMER_MASK BIT(OCIE3C)
-#define TIMER3_ENABLE BIT(CS31)
-#define TIMER3_DISABLE 0
-
 void interpreter_init(void) {    
     
     // Timer/Counter0
@@ -149,170 +82,8 @@ void interpreter_init(void) {
     TCCR4D = 0; // Fast PWM (WGM bits zero)
     OCR4C = (1<<8)-1; // use 8-bit PWM
     TCCR4B = BIT(CS41); // start clock, prescaler=2 (freq=8 MHz, period=125 ns)
-}
-
-
-void raw_wait_high(void *params) {
-    uint8_t pin_number = *(uint8_t *) params;
-    SET_PIN_LOW(pin_number, ddr); // set pin for input
-    SET_PIN_HIGH(pin_number, port); // enable pullup resistor
-    while (!GET_PIN(pin_number, pin) && running) {}
-}
-
-void raw_wait_low(void *params) {
-    uint8_t pin_number = *(uint8_t *) params;
-    SET_PIN_LOW(pin_number, ddr); // set pin for input
-    SET_PIN_HIGH(pin_number, port); // enable pullup resistor
-    while (GET_PIN(pin_number, pin) && running) {}
-}
-
-void raw_wait_change(void *params) {
-    uint8_t pin_number = *(uint8_t *) params;
-    SET_PIN_LOW(pin_number, ddr); // set pin for input
-    SET_PIN_HIGH(pin_number, port); // enable pullup resistor
-    uint8_t current = GET_PIN(pin_number, pin);
-    while (GET_PIN(pin_number, pin) == current && running) {}
-}
-
-void steady_wait(uint8_t pin_number, uint8_t target) {
-    while (GET_PIN(pin_number, pin) != target && running) {}
-    TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
-    TIFR3 = BIT(OCF3B); // clear any timer-match flags present
-    OCR3B = TCNT3 + steady_wait_time_half_us; // set up match time (wraparound expected; works great)
-    TCCR3B = TIMER3_ENABLE; // start timer 3
-    while (!(TIFR3 & BIT(OCF3B)) && running) {
-        if (GET_PIN(pin_number, pin) != target) { // if the pin changes, reset the wait time
-            TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
-            OCR3B = TCNT3 + steady_wait_time_half_us; // set up match time (wraparound expected; works great)
-            TCCR3B = TIMER3_ENABLE; // start timer 3
-        }
-    }
-}
-
-void wait_high(void *params) {
-    uint8_t pin_number = *(uint8_t *) params;
-    SET_PIN_LOW(pin_number, ddr); // set pin for input
-    SET_PIN_HIGH(pin_number, port); // enable pullup resistor
-    steady_wait(pin_number, 1);
-}
-
-void wait_low(void *params) {
-    uint8_t pin_number = *(uint8_t *) params;
-    SET_PIN_LOW(pin_number, ddr); // set pin for input
-    SET_PIN_HIGH(pin_number, port); // enable pullup resistor
-    steady_wait(pin_number, 0);
-}
-
-void wait_change(void *params) {
-    uint8_t pin_number = *(uint8_t *) params;
-    SET_PIN_LOW(pin_number, ddr); // set pin for input
-    SET_PIN_HIGH(pin_number, port); // enable pullup resistor
-    uint8_t current = GET_PIN(pin_number, pin);
-    steady_wait(pin_number, !current);
-}
-
-void set_wait_time(void *params) {
-    steady_wait_time_half_us = *(uint16_t *) params;
-}
-
-void delay_milliseconds(void *params) {
-    uint16_t ms_delay = *(uint16_t *) params;
-    ms_timer = 0;
-    ms_timer_target = ms_delay;
-    ms_timer_done = false;
-    TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
-    TIMSK3 |= MS_TIMER_MASK; // enable millisecond timer
-    OCR3A = TCNT3; // Fire off the millisecond timer immediately after starting the clocks
-    TCCR3B = TIMER3_ENABLE; // start timer 3
-    while (!ms_timer_done && running) {}
-    TIMSK3 &= ~MS_TIMER_MASK; // disable millisecond timer
-}
-
-void delay_microseconds(void *params) {
-    uint16_t half_us_delay = *(uint16_t *) params;
-    TIMSK3 = 0; // no USB interrupts; won't get "quit" signal
-    TIFR3 = BIT(OCF3B); // clear any timer-match flags present
-    TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
-    OCR3B = TCNT3 + half_us_delay; // set up match time (wraparound expected; works great)
-    TCCR3B = TIMER3_ENABLE; // start timer 3
-    while (!(TIFR3 & BIT(OCF3B))) {}
-    TIMSK3 = USB_TIMER_MASK;
-}
-
-void pwm8(void *params) {
-    uint8_t pin_number = *(uint8_t *) params;
-    uint8_t pwm_value = *(uint8_t *) (params + 1);
-    SET_PIN_HIGH(pin_number, ddr); // set pin for output
-    *((volatile uint8_t *) pins[pin_number].ocr) = pwm_value;
-    ENABLE_PWM(pin_number);
-}
-
-void pwm16(void *params) {
-    uint8_t pin_number = *(uint8_t *) params;
-    uint16_t pwm_value = *(uint16_t *) (params + 1);
-    SET_PIN_HIGH(pin_number, ddr); // set pin for output
-    *((volatile uint16_t *) pins[pin_number].ocr) = pwm_value;
-    ENABLE_PWM(pin_number);
-}
-
-void set_high(void *params) {
-    uint8_t pin_number = *(uint8_t *) params;
-    if (pins[pin_number].ocr != NULL) {
-        DISABLE_PWM(pin_number);
-    }
-    SET_PIN_HIGH(pin_number, ddr); // set pin for output
-    SET_PIN_HIGH(pin_number, port); // set pin for output
-}
-
-void set_low(void *params) {
-    uint8_t pin_number = *(uint8_t *) params;
-    if (pins[pin_number].ocr != NULL) {
-        DISABLE_PWM(pin_number);
-    }
-    SET_PIN_HIGH(pin_number, ddr); // set pin for output
-    SET_PIN_LOW(pin_number, port); // set pin for output
-}
-
-void set_tristate(void *params) {
-    uint8_t pin_number = *(uint8_t *) params;
-    if (pins[pin_number].ocr != NULL) {
-        DISABLE_PWM(pin_number);
-    }
-    SET_PIN_LOW(pin_number, ddr); // set pin for input
-    SET_PIN_LOW(pin_number, port); // disable pullup resistor
-}
-
-void char_receive(void *params) {
-    run_serial_tasks_from_isr = false; // we'll do this ourselves
-    uint8_t data = usb_serial_wait_byte();
-    if (data == QUIT_BYTE) {
-        running = false;
-    }
-    // otherwise discard input
-    run_serial_tasks_from_isr = true;
-}
-
-void char_transmit(void *params) {
-    uint8_t output = *(uint8_t *) params;
-    usb_serial_write_byte(output);
-    usb_serial_flush();
-}
-
-void loop(void *params) {
-    uint8_t goto_index = *(uint8_t *) params;
-    uint8_t loop_index = *(uint8_t *) (params + 1);
-    if (loop_current_values[loop_index] > 0) {
-        loop_current_values[loop_index]--;
-        program_counter = goto_index;
-    }
-}
-
-void goto_(void *params) {
-    uint8_t goto_index = *(uint8_t *) params;
-    program_counter = goto_index;
-}
-
-void noop(void *params) {
+    
+    sei(); // enable interrupts
 }
 
 
@@ -400,7 +171,7 @@ typedef enum {NOERR, BAD_FUNC, BAD_PARAM, NOT_PWM, NO_ROOM} err_t;
 typedef enum {PROGRAM, END, RUN, ADD_STEP, ECHO_OFF} input_action_t;
 
 // forwared decl
-err_t add_program_step(char *line, function_t *function_out);
+err_t add_program_step(char *line, command_t *function_out);
 
 void interpret_line(char *line) {
     // can assume line is null-terminated
@@ -443,7 +214,7 @@ void interpret_line(char *line) {
     
     switch (action) {
         err_t result;
-        function_t function;
+        command_t function;
         case RUN:
             run_program(num_iters);
             usb_serial_write_string_P(PSTR("DONE\n"));
@@ -500,7 +271,7 @@ void interpret_line(char *line) {
     }
 }
 
-err_t add_program_step(char *line, function_t *function_out) {
+err_t add_program_step(char *line, command_t *function_out) {
     // can assume line is null-terminated and is at least 2 chars in length
     if (parse_space_to_end(line)) {
         return NOERR;
@@ -509,7 +280,7 @@ err_t add_program_step(char *line, function_t *function_out) {
         return BAD_FUNC;
     }
     
-    function_t function;
+    command_t function;
     char *params = line + 2; // at worst, points to null byte terminating the string
     uint8_t *heap_end = program_heap + program_size*HEAP_PER_STEP;
     if (program_size == MAX_PROGRAM_STEPS) {

@@ -15,7 +15,7 @@
  * enable interrupts etc.
  */
 
-extern void platform_init(void);
+void platform_init(void);
 
 
 #endif	/* platform_h */
