@@ -21,53 +21,23 @@
 
 #include "usb_serial_base.h"
 #include <LUFA/Drivers/USB/USB.h>
+#include <stdbool.h>
 
 // Default input buffer size - can be overriden.
 #ifndef USB_IBUFSZ
 #define USB_IBUFSZ 80
 #endif
 
-// Serial input/output modes.
-// Text mode: line buffered, echo input, handle backspace, map NL to CR/NL.
-// Binary mode: unbuffered, no echoing, no backspace, no NL mapping.
-#define USB_SERIAL_IN_RAW   0x00
-#define USB_SERIAL_OUT_RAW  0x00
-#define USB_SERIAL_IN_TEXT  0x01
-#define USB_SERIAL_OUT_TEXT 0x02
-#define USB_SERIAL_RAW      (USB_SERIAL_IN_RAW | USB_SERIAL_OUT_RAW)
-#define USB_SERIAL_TEXT     (USB_SERIAL_IN_TEXT | USB_SERIAL_OUT_TEXT)
+extern bool usb_serial_echo;
 
-
-
-/*
- * Create a new USB Serial connection, returning two stdio streams.  See above
- * for iomode values.
- */
-extern void usb_serial_init(uint8_t iomode, FILE **in, FILE **out);
-
-/*
- * Create a new USB Serial connection, setting stdin, stdout and stderr to the
- * opened streams.  See above for iomode values.
- */
-extern void usb_serial_init_stdio(uint8_t iomode);
-
-extern void usb_send_string(const char *data);
-extern void usb_send_string_P(const char *data);
-
-/*
- * Return the number of input characters available.
- */
-extern int  usb_serial_input_chars(void);
-
-/*
- * Return the number of input lines available.
- */
-extern int  usb_serial_input_lines(void);
-
-
-void clock_start(void);
-void clock_stop(void);
-bool usb_serial_run(void);
-
+extern void usb_serial_init(void);
+extern int16_t usb_serial_write_byte(uint8_t byte);
+extern void usb_serial_flush(void);
+extern void usb_serial_write_string(const char *data);
+extern void usb_serial_write_string_P(const char *data);
+extern uint8_t usb_serial_wait_byte(void);
+extern bool usb_serial_has_byte(uint8_t *byte_out);
+extern void usb_serial_process_byte(uint8_t byte);
+extern char *usb_serial_read_line(void);
 
 #endif	/* usb_serial_h */

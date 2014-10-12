@@ -18,8 +18,8 @@ EXTRA_FLAGS = -DBAUD_TOL=3 \
 
 GCC_HOME = /usr/local/CrossPack-AVR
 
-AVRDUDE_PORT = /dev/tty.usbmodemfa131
-MONITOR_PORT = /dev/tty.usbmodemfd1241
+AVRDUDE_PORT = /dev/tty.usbmodemfd121
+MONITOR_PORT = /dev/tty.usbmodem0xFFF1
 AVRDUDE_TYPE = avr109
 
-include ../../lib/Makefile.master
+include Makefile.master

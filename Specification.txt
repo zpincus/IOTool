@@ -1,21 +1,39 @@
-commands:
+Commands:
+wh p        wait high: char[2] pin_name (1)
+wl p        wait low: char[2] pin_name
+wc p        wait change: char[2] pin_name
+wt d        set wait time: uint16 us
+rh p        raw wait high: char[2] pin_name
+rl p        raw wait low: char[2] pin_name
+rc p        raw wait change: char[2] pin_name
+dm d        delay ms: uint16 ms
+du d        delay µs: uint16 us
+pm p v      set PWM: char[2] pin_name  uint16 value
+sh p        set high: char[2] pin_name
+sl p        set low: char[2] pin_name
+st p        set high-impedance "tri-state": char[2] pin_name
+ct b        character transmit: uint8 byte
+cr          character receive
+lo i n      loop: uint8 goto_index uint16 num_times (2)
+go i        goto: uint8 goto_index
 
-wh p	wait high: uint8 pin
-wl p	wait low: uint8 pin
-wc p	wait change: uint8 pin
-dm d	delay ms: uint16 ms
-du d	delay µs: uint16 us
-pm p v	set PWM: uint8 pin  uint16 value
-sh p	set high: uint8 pin
-sl p	set low: uint8 pin
-st p	tri-state: uint8 pin
-ct b	character transmit: uint8 byte
-cr	character receive
-lo i n	loop: uint8 goto_index, uint16 num_times
+program     start programming, clearing previous (3)
+end         end programming, return to immediate-execution mode
+run n       run program: uint16 num_loops (4, 5)
+\x80\xFF    turn serial echo off for non-interactive use
+!           break out of execution (6)
 
-clear	clear program
-run n	run uint16 num_loops
+(1) pin names are 'B0'...'F7'.
+(2) nested loops WILL NOT WORK!
+(3) commands not issued between 'program' and 'end' are immediately executed.
+(4) if n is not specified run one loop.
+(5) When program has finished, "DONE\r\n" is output.
+(6) The 'du' command will not respond to a break, but all others will.
 
+PWM-capable pins:
+8-bit @ 62.5 kHz: B7 and D0
+10-bit @ 15.625 kHz: B5 and B6
+8-bit @ 31.25 kHz: C7 and D7
 
 
 

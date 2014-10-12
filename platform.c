@@ -14,7 +14,7 @@
 #include "utils.h"
 #include "platform.h"
 
-void init(void)
+void platform_init(void)
 {
     // make sure we're running at full clock
 	clock_prescale_set(clock_div_1);

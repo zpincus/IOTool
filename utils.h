@@ -69,18 +69,4 @@ typedef unsigned int  uint_t;
 #define SET_MASK_HI(V, M)   (V) |= (uint8_t)(M)       // Set mask bits hi.
 #define SET_MASK_LO(V, M)   (V) &= (uint8_t)~(M)      // Set mask bits lo.
 
-/*
- * Structure for holding pin definitions.
- */
-
-typedef struct {
-    volatile uint8_t *const port;    // The port location.
-    volatile uint8_t *const ddr;     // The data direction location.
-    const uint8_t bit;               // The bit number.
-} pin_t;
-
-// Initialise a pin_t structure - see also arduino_pins.h
-#define INIT_PIN(_PORT, _PIN) { &PORT##_PORT, &DDR##_PORT, PORT##_PORT##_PIN }
-
-
 #endif  /* utils_h */
