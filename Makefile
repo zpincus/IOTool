@@ -1,25 +1,28 @@
-# Copyright 2012 Alan Burlison, alan@bleaklow.com.  All rights reserved.
-# Use is subject to license terms.  See LICENSE.txt for details.
+# Run "make help" for target help.
 
-MCU = atmega32u4
-F_CPU = 16000000L
-PROGRAMMER = avrdude
+MCU          = atmega32u4
+ARCH         = AVR8
+F_CPU        = 16000000
+F_USB        = $(F_CPU)
+OPTIMIZATION = s
+TARGET       = IOTool
+SRC          = interpreter.c main.c platform.c usb_serial.c usb_serial_base.c $(LUFA_SRC_USB_DEVICE) $(LUFA_SRC_USBCLASS_DEVICE)
+LUFA_PATH    = ../../lufa-LUFA-140302/LUFA
+CC_FLAGS     = -DUSE_LUFA_CONFIG_HEADER
+LD_FLAGS     =
+OBJDIR       = build
 
-INC_DIRS = \
-    ../../lib \
-    ../../lib/LUFA \
-    .
-LIB_DIRS = \
-    ../../lib/LUFA/Drivers/USB/Core \
-    ../../lib/LUFA/Drivers/USB/Core/AVR8 \
-    ../../lib/LUFA/Drivers/USB/Class/Device
-EXTRA_FLAGS = -DBAUD_TOL=3 \
-    -DF_USB=$(F_CPU) -DUSE_LUFA_CONFIG_HEADER -DARCH=ARCH_AVR8
-
-GCC_HOME = /usr/local/CrossPack-AVR
-
+AVRDUDE_PROGRAMMER = avr109
 AVRDUDE_PORT = /dev/tty.usbmodemfd121
-MONITOR_PORT = /dev/tty.usbmodem0xFFF1
-AVRDUDE_TYPE = avr109
 
-include Makefile.master
+# Default target
+all:
+
+upload: avrdude
+
+# Include LUFA build script makefiles
+include $(LUFA_PATH)/Build/lufa_core.mk
+include $(LUFA_PATH)/Build/lufa_sources.mk
+include $(LUFA_PATH)/Build/lufa_build.mk
+include $(LUFA_PATH)/Build/lufa_avrdude.mk
+
