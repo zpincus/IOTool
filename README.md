@@ -16,11 +16,12 @@ Developed by [Zach Pincus](zplab.wustl.edu), and provided under a GPL2 license.
 
 Basic Usage Example
 -------------------
-First, connect the device to a USB port and note the serial port that appears
+0. Connect the device to a USB port and note the serial port that appears
 on your system. (On Windows this will require the IOTool.inf file.)
-Next, connect to that serial port in your favorite programming environment
-or with a terminal program such as hyperterminal or minicom. Send the following
-text to the device:
+1. Connect to that serial port in your favorite programming environment
+or with a terminal program such as hyperterminal or minicom.
+2. Send the following text to the device (assuming it's configured for the
+Arduino pin naming scheme, as described below):
 
     program
     sh 13
@@ -30,7 +31,7 @@ text to the device:
     lo 0 9
     end
 
-This loads a program to set pin 13 high (turning on the arduino's onboard LED),
+This loads a program to set pin 13 high (turning on the Arduino's onboard LED),
 delay 500 ms, set the pin low (turning the LED off), delay 500 ms, and then
 repeat that from the first step 9 more times. Sending the text `run` followed
 by a newline (return key) will cause the LED to blink 10 times.
@@ -210,8 +211,8 @@ when required.
 AVR and Arduino Pin Names
 -------------------------
 A compile-time option chooses between the AVR and Arduino pin names listed
-below. If -DARDUINO\_PIN\_NAMES is added to the CC_FLAGS line in the Makefile,
-then the Arduino names will be used. Otherwise the AVR names are default.
+below. If the `ARD_PINS` line is uncommented in the Makefile, then the Arduino
+pin names will be used. Otherwise the AVR names are default.
 
     AVR   Arduino   Comment on Arduino Pin
     B0    SS        Also Receive LED (Not connected to a pin on Leonardo)
