@@ -118,22 +118,22 @@ Scripting Language Specification
     10-bit @ 15.625 kHz: B5 and B6 (AVR) = 9 and 10 (Arduino)
 
 ### Detailed command description ###
-*Wait for specific pin value*:`wh pin` (wait for high), `wl pin` (wait for
+**Wait for specific pin value:** `wh pin` (wait for high), `wl pin` (wait for
 low), and `wc pin` (wait for change), where _pin_ is a one- or two-character
 pin name (either the AVR port-letter + pin-number format, or the arduino
-format; more about that below). These commands wait for a stable reading on a
-given pin of a high, low, or different-from-current value (respectively). The
-specified pin is set to input and the internal pull-up resistor is enabled
-before readings are taken. A "stable" reading is defined as pulse lasting
-longer than the currently set wait time, which defaults to 10 µs. This
-provides protection against stray electromagnetic interference.
+format; described below). These commands wait for a stable reading on a given
+pin of a high, low, or different-from-current value (respectively). A "stable"
+reading is defined as pulse lasting longer than the currently set wait time,
+which defaults to 10 µs. This provides protection against stray
+electromagnetic interference. Note that the specified pin is set to input and
+the internal pull-up resistor is enabled before readings are taken.
 
-*Set waiting time for stable readings*: `wt time`, where 0 < _time_ < 2^15,
+**Set waiting time for stable readings:** `wt time`, where 0 < _time_ < 2^15,
 in microseconds. The `wh`, `wl`, and `wc` commands wait for a pulse to read at
 the desired level for at least this many µs before returning. The default is
 10 µs.
 
-*Wait for specific pin value without delay*: `rh pin` (raw wait for high), `rl
+**Wait for specific pin value without delay:** `rh pin` (raw wait for high), `rl
 pin` (raw wait for low), and `rc pin` (raw wait for change), where _pin_ is a
 one- or two-character pin name. As soon as a pin change to the desired state
 is detected, these commands return. There is no protection against
@@ -141,19 +141,19 @@ bounce/electromagnetic interference in raw wait modes. However, the response
 time is faster (see timing data below). The specified pin is set to input and
 the internal pull-up resistor is enabled before readings are taken.
 
-*Delay a given interval*: `dm ms` (delay milliseconds) and `du us` (delay
+**Delay a given interval:** `dm ms` (delay milliseconds) and `du us` (delay
 micoseconds), where 0 ≤ _ms_ < 2^16 and 0 ≤ _us_ < 2^15. Note: these
 delay times are for a chip clocked at 16 MHz. For other clock speeds, adjust
 accordingly, or alter the timer counter values (described in the 'Porting'
 section below).
 
-*Set a pin's value*: `sh pin` (set high), `sl pin` (set low), and `st pin`
+**Set a pin's value:** `sh pin` (set high), `sl pin` (set low), and `st pin`
 (set tristate), where _pin_ is a one- or two-character pin name. The effects
 of setting high and low are obvious. Setting a pin to tri-state
 (high-impedance) means that it will not drive a circuit in any direction. (The
 pin is set to input and the internal pull-up resistor is disabled.)
 
-*Enable PWM*: `pm pin value`, where _pin_ is a one- or two-character pin name,
+**Enable PWM:** `pm pin value`, where _pin_ is a one- or two-character pin name,
 and _value_ is a PWM duty cycle in either an 8-bit (0 ≤ _value_ < 2^8) or
 10-bit (0 ≤ _value_ < 2^10) range, depending on the pin specified. There are
 six PWM capable pins: two 8-bit pins with a PWM frequency of 62.5 kHz (AVR
@@ -162,7 +162,7 @@ C7 and D7 / Arduino 13 and 6), and two 10-bit pins at 15.625 kHz (AVR B5 and
 B6 / Arduino 9 and 10). Note: these PWM frequencies are for a chip clocked at
 16 MHz. For other clock speeds, adjust accordingly.
 
-*Send and Receive Serial Data to/from Host* `cr` (character receive) and `ct
+**Send and Receive Serial Data to/from Host** `cr` (character receive) and `ct
 value` (character transmit), where 0 ≤ value < 2^8. These commands are
 useful for synchronizing script execution with the host computer. If the `cr`
 command is issued, execution halts until a single byte is sent from the
@@ -170,7 +170,7 @@ computer host to the microcontroller. The contents of this byte are discarded
 and not echoed back to the host. When `ct` commands are run, a single byte
 with the value specified (from 0 to 255) will be transmitted to the host.
 
-*Repeating Commands* `lo index count` (loop back), and `go index` (goto),
+**Repeating Commands** `lo index count` (loop back), and `go index` (goto),
 where 0 ≤ _index_ < 2^8 and 0 ≤ _count_ < 2^16. These commands provide
 for repeating script commands either a fixed number of times (`lo`), or
 indefinitely (`go`). The _index_ parameter refers to the command number in the
@@ -241,6 +241,62 @@ pin names will be used. Otherwise the AVR names are default.
     F6    A1        
     F7    A0        
     
+Program Step Execution Speed
+----------------------------
+On a chip clocked at 16 MHz, the following commands were timed as follows:
+
+    wh: 9.0 µs + delay specified by wt + time waiting for signal
+    wl: 9.0 µs + delay specified by wt + time waiting for signal
+    rh: 6.7 µs + time waiting for signal
+    rl: 6.7 µs + time waiting for signal
+    dm: 10.6 µs + delay time
+    du: 4.8 µs + delay time
+    pm: 5.5 µs for 8-bit PWM and 5.8 µs for 10-bit
+    sh: 6.0 µs
+    sl: 6.0 µs
+    st: 6.0 µs
+    ct: ~22 µs, depending on USB bus
+    lo: 6.0 µs + 5 µs overhead per iteration
+    go: 2.9 µs
+
+Porting to Another AVR Microcontroller
+--------------------------------------
+Porting this to another USB-enabled AVR microcontroller should be relatively
+simple. All that is required is to edit the pin definitions in `src/pins.c` to
+match the pins provided by the new microcontroller, and adjust the timer usage
+in `interpreter.c` to match the capabilities and clock speed of the new chip.
+
+On the ATmega32u4 clocked at 16 MHz, the following timers are used for internal
+timing, delay timing, and PWM generation.
+
+### Timer/Counter0 ###
+    Prescaler: 1 (62.5 ns/count)
+    Mode: Fast PWM 
+    Frequency: 8-bit at 62.5 ns/count = 62.5 kHz
+    OCR0A: used to define the PWM waveform on pin OC0A (B7)
+    OCR0B: used to define the PWM waveform on pin OC0B (D0)
+
+### Timer/Counter1 ###
+    Prescaler: 1 (62.5 ns/count)
+    Mode: Fast PWM, 10-bit (ICR1 = 2^10, WGM13:0 bits set to 14)
+    Frequency: 10-bit at 62.5 ns/count = 15.625 kHz
+    OCR1A: used to define the PWM waveform on pin OC1A (B5)
+    OCR1B: used to define the PWM waveform on pin OC1B (B6)
+
+### Timer/Counter3 ###
+    Prescaler: 8 (0.5 µs/count)
+    Mode: Normal
+    OCR3A: used for ms timer ISR, which increments register by 2000 each call
+    OCR3B: used for µs timer: set to desired delay time and then wait on OCF3B
+    OCR3C: used for USB task timer ISR, must be set to 60000 (30 ms) or less
+
+### Timer/Counter4 ###
+    Prescaler: 2 (125 ns/count)
+    Mode: Fast PWM, 8-bit (OCR4C = 2^8)
+    Frequency: 8-bit at 125 ns/count = 31.25 kHz
+    OCR4A: used to define the PWM waveform on pin OC4A (C7)
+    OCR4D: used to define the PWM waveform on pin OC4D (D7)
+
 A Note on Debouncing Switches
 -----------------------------
 Mechanical switches do not usually transition cleanly, but produce a chatter of
@@ -267,59 +323,3 @@ a LED on pin B0 in accordance with a toggled switch on B1:
 
 By simply delaying 100 ms before waiting for the next switch event, the above 
 script excludes the possibility of reading switch bounce mistakenly.
-
-Program Step Execution Speed
-----------------------------
-On a chip clocked at 16 MHz, the following commands were timed as follows:
-
-    wh: 9.0 µs + delay specified by wt + time waiting for signal
-    wl: 9.0 µs + delay specified by wt + time waiting for signal
-    rh: 6.7 µs + time waiting for signal
-    rl: 6.7 µs + time waiting for signal
-    dm: 10.6 µs + delay time
-    du: 4.8 µs + delay time
-    pm: 5.5 µs for 8-bit PWM and 5.8 µs for 10-bit
-    sh: 6.0 µs
-    sl: 6.0 µs
-    st: 6.0 µs
-    ct: ~22 µs depending, on USB bus
-    lo: 6.0 µs + 5 µs overhead/iteration
-    go: 2.9 µs
-
-Porting to Another AVR Microcontroller
---------------------------------------
-Porting this to another USB-enabled AVR microcontroller should be relatively
-simple. All that is required is to edit the pin definitions in `src/pins.c` to
-match the pins provided by the new microcontroller, and adjust the timer usage
-in `interpreter.c` to match the capabilities and clock speed of the new chip.
-
-On the ATmega32u4 clocked at 16 MHz, the following timers are used for internal
-timing, delay timing, and PWM generation.
-
-### Timer/Counter0 ###
-    Prescaler: 1 (62.5 ns/count)
-    Mode: Fast PWM 
-    Frequency: 8-bit at 62.5 ns/count = 62.5 kHz
-    OCR0A: used to define the PWM waveform on pin OC0A (B7)
-    OCR0B: used to define the PWM waveform on pin OC0B (D0)
-
-### Timer/Counter1 ###
-    Prescaler: 1 (62.5 ns/count)
-    Mode: Fast PWM, 10-bit (ICR1 = 2**10, WGM13:0 bits set to 14)
-    Frequency: 10-bit at 62.5 ns/count = 15.625 kHz
-    OCR1A: used to define the PWM waveform on pin OC1A (B5)
-    OCR1B: used to define the PWM waveform on pin OC1B (B6)
-
-### Timer/Counter3 ###
-    Prescaler: 8 (0.5 µs/count)
-    Mode: Normal
-    OCR3A: used for ms timer ISR, which increments register by 2000 each call
-    OCR3B: used for µs timer: set to desired delay time and then wait on OCF3B
-    OCR3C: used for USB task timer ISR, must be set to 60000 (30 ms) or less
-
-### Timer/Counter4 ###
-    Prescaler: 2 (125 ns/count)
-    Mode: Fast PWM, 8-bit (OCR4C = 2**8)
-    Frequency: 8-bit at 125 ns/count = 31.25 kHz
-    OCR4A: used to define the PWM waveform on pin OC4A (C7)
-    OCR4D: used to define the PWM waveform on pin OC4D (D7)
