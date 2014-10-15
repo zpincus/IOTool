@@ -1,20 +1,9 @@
-/*
- * Copyright 2014 Alan Burlison, alan@bleaklow.com.  All rights reserved.
- * Use is subject to license terms.  See LICENSE.txt for details.
- */
-
-/*
- * Requires and is based in part on example code from:
- *     LUFA Library Copyright (C) Dean Camera, 2014.
- *     dean [at] fourwalledcubicle [dot] com www.lufa-lib.org
- * See License.txt in the LUFA distribution for LUFA license details.
- */
-
-/*
- * LUFA-based CDC-ACM serial port support.  This extends the LUFA implementation
- * by adding basic line discipline handling - CR/NL handling, echoing, backspace
- * handling etc.
- */
+// Copyright 2014 Zachary Pincus (zpincus@wustl.edu / zplab.wustl.edu)
+// This file is part of IOTool.
+// 
+// IOTool is free software; you can redistribute it and/or modify
+// it under the terms of version 2 of the GNU General Public License as
+// published by the Free Software Foundation.
 
 #include "usb_serial.h"
 #include <avr/pgmspace.h>
@@ -24,9 +13,9 @@
 
 bool usb_serial_echo = true;
 volatile bool has_line = false;
-char input_buffer[USB_IBUFSZ];
+char input_buffer[USB_IBUF];
 volatile char *buffer_cursor = input_buffer;
-char *buffer_end = input_buffer + USB_IBUFSZ;
+char *buffer_end = input_buffer + USB_IBUF;
 
 
 /*

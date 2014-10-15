@@ -63,8 +63,8 @@ static const USB_Descriptor_Device_t PROGMEM deviceDescriptor = {
     .SubClass = CDC_CSCP_NoSpecificSubclass,
     .Protocol = CDC_CSCP_NoSpecificProtocol,
     .Endpoint0Size = FIXED_CONTROL_ENDPOINT_SIZE,
-    .VendorID = 0x03EB, // LUFA private-use VID/PID
-    .ProductID = 0x206F,
+    .VendorID = 0x03EB, // LUFA private-use VID
+    .ProductID = 0x2044, // LUFA CDC Demo Application PID
     .ReleaseNumber = VERSION_BCD(0, 0, 1),
     .ManufacturerStrIndex = 0x01,
     .ProductStrIndex = 0x02,
@@ -197,7 +197,7 @@ static const USB_Descriptor_String_t PROGMEM productString = {
         .Size = USB_STRING_LEN(11),
         .Type = DTYPE_String
     },
-    .UnicodeString = L"USB IO Tool"
+    .UnicodeString = L"IOTool"
 };
 
 static const USB_Descriptor_String_t PROGMEM serialString = {
@@ -205,7 +205,7 @@ static const USB_Descriptor_String_t PROGMEM serialString = {
         .Size = USB_STRING_LEN(6),
         .Type = DTYPE_String
     },
-    .UnicodeString = L"0xFFFF"
+    .UnicodeString = SERIAL_NUMBER
 };
 
 

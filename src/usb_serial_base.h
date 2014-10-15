@@ -10,11 +10,6 @@
  * See License.txt in the LUFA distribution for LUFA license details.
  */
 
-/*
- * LUFA-based CDC-ACM serial port support.  This extends the LUFA implementation
- * by adding basic line disciplie handling - CR/NL handling, echoing, backspace
- * handling etc.
- */
 
 #ifndef usb_serial_base_h
 #define	usb_serial_base_h
@@ -32,6 +27,8 @@ extern USB_ClassInfo_CDC_Device_t serialDevice;
 
 extern uint8_t state;
 
+// Serial Number for Device
+#define SERIAL_NUMBER L"0xFFFF"
 
 
 #endif	/* usb_serial_base_h */

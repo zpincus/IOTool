@@ -1,3 +1,10 @@
+// Copyright 2014 Zachary Pincus (zpincus@wustl.edu / zplab.wustl.edu)
+// This file is part of IOTool.
+// 
+// IOTool is free software; you can redistribute it and/or modify
+// it under the terms of version 2 of the GNU General Public License as
+// published by the Free Software Foundation.
+
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
@@ -29,6 +36,7 @@ uint16_t program_size = 0; // must be uint16 to be able to hold the value of 256
 uint8_t program_counter;
 uint16_t loop_current_values[MAX_LOOP_COMMANDS];
 uint16_t loop_initial_values[MAX_LOOP_COMMANDS];
+bool loop_active[MAX_LOOP_COMMANDS];
 uint8_t num_loop_commands = 0;
 typedef enum {IMMEDIATE, ON_RUN} mode_t;
 mode_t execute_mode = IMMEDIATE;
@@ -101,7 +109,7 @@ void run_program(uint16_t num_iters) {
             break;
         }
         for (int l = 0; l < num_loop_commands; l++) {
-            loop_current_values[l] = loop_initial_values[l];
+            loop_active[l] = false;
         }
         while (running && program_counter < program_size) {
             uint8_t current_pc = program_counter;
@@ -348,12 +356,12 @@ err_t add_program_step(char *line, command_t *function_out) {
         function = &char_receive;
     } else if (strncmp_P(line, PSTR("lo"), 2) == 0) {
         function = &loop;
+        if (num_loop_commands == MAX_LOOP_COMMANDS) {
+            return NO_ROOM;
+        }
         success = parse_uint8(&params, (uint8_t) MAX_PROGRAM_STEPS-1, heap_end);
         if (success) {
-            if (num_loop_commands == MAX_LOOP_COMMANDS) {
-                return NO_ROOM;
-            }
-             *(uint8_t *)++heap_end = num_loop_commands;
+            *(uint8_t *)++heap_end = num_loop_commands;
             success = parse_uint16(&params, 0xFFFF, loop_initial_values+num_loop_commands);
         }
     } else if (strncmp_P(line, PSTR("go"), 2) == 0) {

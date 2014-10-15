@@ -1,3 +1,10 @@
+// Copyright 2014 Zachary Pincus (zpincus@wustl.edu / zplab.wustl.edu)
+// This file is part of IOTool.
+// 
+// IOTool is free software; you can redistribute it and/or modify
+// it under the terms of version 2 of the GNU General Public License as
+// published by the Free Software Foundation.
+
 #ifndef commands_h
 #define commands_h
 

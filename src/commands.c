@@ -1,3 +1,11 @@
+// Copyright 2014 Zachary Pincus (zpincus@wustl.edu / zplab.wustl.edu)
+// This file is part of IOTool.
+// 
+// IOTool is free software; you can redistribute it and/or modify
+// it under the terms of version 2 of the GNU General Public License as
+// published by the Free Software Foundation.
+
+
 #include "commands.h"
 #include "interpreter.h"
 #include "utils.h"
@@ -155,9 +163,17 @@ void char_transmit(void *params) {
 void loop(void *params) {
     uint8_t goto_index = *(uint8_t *) params;
     uint8_t loop_index = *(uint8_t *) (params + 1);
+    if (!loop_active[loop_index]) {
+        // Initialize loop variables if we're not already in this particular loop.
+        // This allows for nested loops to work properly.
+        loop_current_values[loop_index] = loop_initial_values[loop_index];
+        loop_active[loop_index] = true;
+    }
     if (loop_current_values[loop_index] > 0) {
         loop_current_values[loop_index]--;
         program_counter = goto_index;
+    } else {
+        loop_active[loop_index] = false;
     }
 }
 

@@ -1,10 +1,12 @@
-/*
- * Copyright 2013 Alan Burlison, alan@bleaklow.com.  All rights reserved.
- * Use is subject to license terms.  See LICENSE.txt for details.
- */
+// Copyright 2014 Zachary Pincus (zpincus@wustl.edu / zplab.wustl.edu)
+// This file is part of IOTool.
+// 
+// IOTool is free software; you can redistribute it and/or modify
+// it under the terms of version 2 of the GNU General Public License as
+// published by the Free Software Foundation.
 
-#include "usb_serial.h"
 #include "platform.h"
+#include "usb_serial.h"
 #include "interpreter.h"
 
 void main(void) {
