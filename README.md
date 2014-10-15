@@ -6,13 +6,16 @@ a host computer.
 
 This firmware was originally developed for running laboratory experiments in
 which multiple hardware devices need to signal one another via TTL, and where
-the experimental parameters need to be rapidly reconfigurable. (So writing a
-new firmware for each experiment was out of the questions.)
+the experimental parameters need to be rapidly configurable from a host computer.
 
 In general, this will be useful for any needs for high-speed sequencing of
-inputs and outputs, controlled by a host computer.
+inputs and outputs that should be controlled by a host computer. This project
+is not a replacement for the Arduino environment, and does not aim to provide
+a Turing-complete interpreted language for a microcontroller. The aim is simply
+to allow a host computer to script basic GPIO operations using a microcontroller
+as the TTL interface.
 
-Developed by [Zach Pincus](zplab.wustl.edu), and provided under a GPL2 license.
+Developed by [Zachary Pincus](zplab.wustl.edu), and provided under a GPL2 license.
 
 Basic Usage Example
 -------------------
