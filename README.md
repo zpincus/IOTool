@@ -23,13 +23,13 @@ or with a terminal program such as hyperterminal or minicom.
 2. Send the following text to the device (assuming it's configured for the
 Arduino pin naming scheme, as described below):
 
-    program
-    sh 13
-    dm 500
-    sl 13
-    dm 500
-    lo 0 9
-    end
+        program
+        sh 13
+        dm 500
+        sl 13
+        dm 500
+        lo 0 9
+        end
 
 This loads a program to set pin 13 high (turning on the Arduino's onboard LED),
 delay 500 ms, set the pin low (turning the LED off), delay 500 ms, and then
