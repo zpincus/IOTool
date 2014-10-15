@@ -21,6 +21,7 @@ on your system. (On Windows this will require the IOTool.inf file.)
 Next, connect to that serial port in your favorite programming environment
 or with a terminal program such as hyperterminal or minicom. Send the following
 text to the device:
+
     program
     sh 13
     dm 500
@@ -47,7 +48,7 @@ IOTool is natively compatible with any board powered by an ATmega32u4, including
  - [SparkFun Pro Micro](https://www.sparkfun.com/products/12640)
 
 However, it should be possible with minimal effort to port IOTool to any AVR
-microcontroller supported by the LUFA USB library.
+microcontroller supported by the LUFA USB library (see 'Porting' below).
 
 Installation
 ------------
@@ -74,7 +75,7 @@ Installation
     code modifications are made (see 'Porting' below).
     
 2.  Optional: To customize the device's serial number (used on Macs and some Linuxes
-    for determining the tty name), edit the #define in `src/usb_serial_base.h`.
+    for determining the tty name), edit the relevant `#define` in `src/usb_serial_base.h`.
     
 3.  Press the reset button to enable the firmware to be loaded, and run `make`
     from the IOTool directory to compile and upload the code.
@@ -108,6 +109,7 @@ Scripting Language Specification
     run c       run program: uint16 count (optional)
     \x80\xFF    turn serial echo off for non-interactive use
     !           break out of execution
+(See section below on pin names for further details.)
 
 ### PWM-capable pins ###
      8-bit @ 62.500 kHz: B7 and D0 (AVR) = 11 and 3 (Arduino)
@@ -125,7 +127,7 @@ before readings are taken. A "stable" reading is defined as pulse lasting
 longer than the currently set wait time, which defaults to 10 µs. This
 provides protection against stray electromagnetic interference.
 
-*Set waiting time for stable readings*: `wt time`, where 0 < _time_ <= 32767,
+*Set waiting time for stable readings*: `wt time`, where 0 < _time_ < 2^15,
 in microseconds. The `wh`, `wl`, and `wc` commands wait for a pulse to read at
 the desired level for at least this many µs before returning. The default is
 10 µs.
@@ -139,7 +141,7 @@ time is faster (see timing data below). The specified pin is set to input and
 the internal pull-up resistor is enabled before readings are taken.
 
 *Delay a given interval*: `dm ms` (delay milliseconds) and `du us` (delay
-micoseconds), where 0 <= _ms_ <= 65535 and 0 <= _us_ <= 32767. Note: these
+micoseconds), where 0 ≤ _ms_ < 2^16 and 0 ≤ _us_ < 2^15. Note: these
 delay times are for a chip clocked at 16 MHz. For other clock speeds, adjust
 accordingly, or alter the timer counter values (described in the 'Porting'
 section below).
@@ -151,8 +153,8 @@ of setting high and low are obvious. Setting a pin to tri-state
 pin is set to input and the internal pull-up resistor is disabled.)
 
 *Enable PWM*: `pm pin value`, where _pin_ is a one- or two-character pin name,
-and _value_ is a PWM duty cycle in either an 8-bit (0 <= _value_ <= 255) or
-10-bit (0 <= _value_ <= 1023) range, depending on the pin specified. There are
+and _value_ is a PWM duty cycle in either an 8-bit (0 ≤ _value_ < 2^8) or
+10-bit (0 ≤ _value_ < 2^10) range, depending on the pin specified. There are
 six PWM capable pins: two 8-bit pins with a PWM frequency of 62.5 kHz (AVR
 pins B7 and D0, and Arduino pins 11 and 3), two 8-bit pins at 31.25 kHz (AVR
 C7 and D7 / Arduino 13 and 6), and two 10-bit pins at 15.625 kHz (AVR B5 and
@@ -160,7 +162,7 @@ B6 / Arduino 9 and 10). Note: these PWM frequencies are for a chip clocked at
 16 MHz. For other clock speeds, adjust accordingly.
 
 *Send and Receive Serial Data to/from Host* `cr` (character receive) and `ct
-value` (character transmit), where 0 <= value <= 255. These commands are
+value` (character transmit), where 0 ≤ value < 2^8. These commands are
 useful for synchronizing script execution with the host computer. If the `cr`
 command is issued, execution halts until a single byte is sent from the
 computer host to the microcontroller. The contents of this byte are discarded
@@ -168,7 +170,7 @@ and not echoed back to the host. When `ct` commands are run, a single byte
 with the value specified (from 0 to 255) will be transmitted to the host.
 
 *Repeating Commands* `lo index count` (loop back), and `go index` (goto),
-where 0 <= _index_ <= 255 and 0 <= _count_ <= 65535. These commands provide
+where 0 ≤ _index_ < 2^8 and 0 ≤ _count_ < 2^16. These commands provide
 for repeating script commands either a fixed number of times (`lo`), or
 indefinitely (`go`). The _index_ parameter refers to the command number in the
 current program (starting from 0 as the first command) to jump to. The _count_
@@ -187,7 +189,7 @@ will be ignored.)
 
 `end`: end programming, which returns the device to immediate-execution mode.
 
-`run count`: run the program _count_ times (0 < _count_ <= 65535). If _count_
+`run count`: run the program _count_ times (0 < _count_ < 2^16). If _count_
 is not specified, the program is run one time. At the end of the program runs,
 the string "DONE\r\n" is transmitted to the host computer.
 
@@ -253,6 +255,7 @@ a minimal wait time to exclude spikes from electromagnetic interference), and
 then simply not look for switching events for the length of time the switch 
 might bounce for (100 ms, say). For example, here's a simple program that toggles
 a LED on pin B0 in accordance with a toggled switch on B1:
+
     wh B0
     sh B1
     dm 100
@@ -267,6 +270,7 @@ script excludes the possibility of reading switch bounce mistakenly.
 Program Step Execution Speed
 ----------------------------
 On a chip clocked at 16 MHz, the following commands were timed as follows:
+
     wh: 9.0 µs + delay specified by wt + time waiting for signal
     wl: 9.0 µs + delay specified by wt + time waiting for signal
     rh: 6.7 µs + time waiting for signal
