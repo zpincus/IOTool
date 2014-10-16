@@ -277,28 +277,28 @@ in `interpreter.c` to match the capabilities and clock speed of the new chip.
 On the ATmega32u4 clocked at 16 MHz, the following timers are used for internal
 timing, delay timing, and PWM generation.
 
-**Timer/Counter0**
+### Timer/Counter0 ###
     Prescaler: 1 (62.5 ns/count)
     Mode: Fast PWM 
     Frequency: 8-bit at 62.5 ns/count = 62.5 kHz
     OCR0A: used to define the PWM waveform on pin OC0A (B7)
     OCR0B: used to define the PWM waveform on pin OC0B (D0)
 
-**Timer/Counter1**
+### Timer/Counter1 ###
     Prescaler: 1 (62.5 ns/count)
     Mode: Fast PWM, 10-bit (ICR1 = 2^10, WGM13:0 bits set to 14)
     Frequency: 10-bit at 62.5 ns/count = 15.625 kHz
     OCR1A: used to define the PWM waveform on pin OC1A (B5)
     OCR1B: used to define the PWM waveform on pin OC1B (B6)
 
-**Timer/Counter3**
+### Timer/Counter3 ###
     Prescaler: 8 (0.5 µs/count)
     Mode: Normal
     OCR3A: used for ms timer ISR, which increments register by 2000 each call
     OCR3B: used for µs timer: set to desired delay time and then wait on OCF3B
     OCR3C: used for USB task timer ISR, must be set to 60000 (30 ms) or less
 
-**Timer/Counter4**
+### Timer/Counter4 ###
     Prescaler: 2 (125 ns/count)
     Mode: Fast PWM, 8-bit (OCR4C = 2^8)
     Frequency: 8-bit at 125 ns/count = 31.25 kHz
