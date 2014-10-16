@@ -1,30 +1,34 @@
 IOTool
 ======
-IOTool is a firmware for AVR microcontrollers that provides a simple serial
-interface for scripting/sequencing input and output actions, controlled by
-a host computer.
+IOTool is a firmware for AVR microcontrollers that provides a simple command
+interface over a USB serial port, allowing for a host computer to script
+and sequence TTL input and output actions.
 
 This firmware was originally developed for running laboratory experiments in
 which multiple hardware devices need to signal one another via TTL, and where
-the experimental parameters need to be rapidly configurable from a host computer.
+the experimental parameters need to be rapidly re-configurable from the
+controlling computer.
 
-In general, this will be useful for any needs for high-speed sequencing of
-inputs and outputs that should be controlled by a host computer. This project
-is not a replacement for the Arduino environment, and does not aim to provide
-a Turing-complete interpreted language for a microcontroller. The aim is simply
-to allow a host computer to script basic GPIO operations using a microcontroller
-as the TTL interface.
+In general, IOTool may be useful for any high-speed sequencing of inputs and
+outputs controlled by a host computer. There is no provision for branching
+logic, or autonomous operation unattached from a computer. In such cases,
+Arduino or AVR-GCC code is a better choice, as IOTool does not aim to provide
+a Turing-complete interpreted language for a microcontroller. The aim is
+simply to allow a host computer to script basic GPIO operations using a
+microcontroller as the TTL interface.
 
 Developed by [Zachary Pincus](zplab.wustl.edu), and provided under a GPL2 license.
 
 Basic Usage Example
 -------------------
 0. Connect the device to a USB port and note the serial port that appears
-on your system. (On Windows this will require the IOTool.inf file.)
+   on your system. (On Windows this will require the IOTool.inf file.)
+
 1. Connect to that serial port in your favorite programming environment
-or with a terminal program such as hyperterminal or minicom.
+   or with a terminal program such as hyperterminal or minicom.
+
 2. Send the following text to the device (assuming it's configured for the
-Arduino pin naming scheme, as described below):
+   Arduino pin naming scheme, as described below):
 
         program
         sh 13
@@ -33,11 +37,12 @@ Arduino pin naming scheme, as described below):
         dm 500
         lo 0 9
         end
-
-This loads a program to set pin 13 high (turning on the Arduino's onboard LED),
-delay 500 ms, set the pin low (turning the LED off), delay 500 ms, and then
-repeat that from the first step 9 more times. Sending the text `run` followed
-by a newline (return key) will cause the LED to blink 10 times.
+   This stores a program to set pin 13 high (turning on the Arduino's onboard
+   LED), delay 500 ms, set the pin low (turning the LED off), delay 500 ms, and
+   then repeat that from the first step 9 more times.
+  
+3. Send the text `run` followed by a newline (return key), which will
+   cause the LED to blink 10 times.
 
 Hardware Compatibility
 ----------------------
@@ -51,8 +56,8 @@ IOTool is natively compatible with any board powered by an ATmega32u4, including
  - [SparkFun ATmega32u4 Breakout](https://www.sparkfun.com/products/11117)
  - [SparkFun Pro Micro](https://www.sparkfun.com/products/12640)
 
-However, it should be possible with minimal effort to port IOTool to any AVR
-microcontroller supported by the LUFA USB library (see 'Porting' below).
+However, it should be possible with minimal effort to port IOTool to any other
+AVR microcontroller supported by the LUFA USB library (see 'Porting' below).
 
 Installation
 ------------
@@ -60,7 +65,8 @@ Installation
     AVR-GCC is also required: [source](http://www.nongnu.org/avr-libc/), [Mac](http://www.obdev.at/products/crosspack)
     [Windows](http://sourceforge.net/projects/winavr).
     
-1.  Configure the IOTool Makefile as follows.
+1.  Configure the IOTool Makefile as follows:
+
     First, set the LUFA_PATH variable to the relative or absolute path to the
     LUFA library obtained above.
 
@@ -110,15 +116,15 @@ Scripting Language Specification
     
     program     start programming, clearing previous
     end         end programming, return to immediate-execution mode
-    run c       run program: uint16 count (optional)
+    run c       run program: uint16 count (optional, defaults to one run)
     \x80\xFF    turn serial echo off for non-interactive use
-    !           break out of execution
+    !           break out of currently executing run
 (See section below on pin names for further details.)
 
 ### PWM-capable pins ###
-     8-bit @ 62.500 kHz: B7 and D0 (AVR) = 11 and 3 (Arduino)
-     8-bit @ 31.250 kHz: C7 and D7 (AVR) = 13 and 6 (Arduino)
-    10-bit @ 15.625 kHz: B5 and B6 (AVR) = 9 and 10 (Arduino)
+     8-bit PWM @ 62.500 kHz: pins B7 and D0 (AVR) / 11 and 3 (Arduino)
+     8-bit PWM @ 31.250 kHz: pins C7 and D7 (AVR) / 13 and 6 (Arduino)
+    10-bit PWM @ 15.625 kHz: pins B5 and B6 (AVR) / 9 and 10 (Arduino)
 
 ### Detailed command description ###
 **Wait for specific pin value:** `wh pin` (wait for high), `wl pin` (wait for
@@ -156,16 +162,16 @@ of setting high and low are obvious. Setting a pin to tri-state
 (high-impedance) means that it will not drive a circuit in any direction. (The
 pin is set to input and the internal pull-up resistor is disabled.)
 
-**Enable PWM:** `pm pin value`, where _pin_ is a one- or two-character pin name,
-and _value_ is a PWM duty cycle in either an 8-bit (0 ≤ _value_ < 2^8) or
-10-bit (0 ≤ _value_ < 2^10) range, depending on the pin specified. There are
-six PWM capable pins: two 8-bit pins with a PWM frequency of 62.5 kHz (AVR
-pins B7 and D0, and Arduino pins 11 and 3), two 8-bit pins at 31.25 kHz (AVR
-C7 and D7 / Arduino 13 and 6), and two 10-bit pins at 15.625 kHz (AVR B5 and
-B6 / Arduino 9 and 10). Note: these PWM frequencies are for a chip clocked at
-16 MHz. For other clock speeds, adjust accordingly.
+**Enable PWM on a pin:** `pm pin value`, where _pin_ is a one- or
+two-character pin name, and _value_ is a PWM duty cycle in either an 8-bit (0
+≤ _value_ < 2^8) or 10-bit (0 ≤ _value_ < 2^10) range, depending on the pin
+specified. There are six PWM capable pins: two 8-bit pins with a PWM frequency
+of 62.5 kHz (AVR pins B7 and D0, and Arduino pins 11 and 3), two 8-bit pins at
+31.25 kHz (AVR C7 and D7 / Arduino 13 and 6), and two 10-bit pins at 15.625
+kHz (AVR B5 and B6 / Arduino 9 and 10). Note: these PWM frequencies are for a
+chip clocked at 16 MHz. For other clock speeds, adjust accordingly.
 
-**Send and Receive Serial Data to/from Host** `cr` (character receive) and `ct
+**Send and Receive Serial Data to/from Host:** `cr` (character receive) and `ct
 value` (character transmit), where 0 ≤ value < 2^8. These commands are
 useful for synchronizing script execution with the host computer. If the `cr`
 command is issued, execution halts until a single byte is sent from the
@@ -173,7 +179,7 @@ computer host to the microcontroller. The contents of this byte are discarded
 and not echoed back to the host. When `ct` commands are run, a single byte
 with the value specified (from 0 to 255) will be transmitted to the host.
 
-**Repeating Commands** `lo index count` (loop back), and `go index` (goto),
+**Repeat Commands:** `lo index count` (loop back), and `go index` (goto),
 where 0 ≤ _index_ < 2^8 and 0 ≤ _count_ < 2^16. These commands provide
 for repeating script commands either a fixed number of times (`lo`), or
 indefinitely (`go`). The _index_ parameter refers to the command number in the
@@ -184,7 +190,6 @@ loop. In the usual configuration of looping back to previous steps, this means
 executions of the looped steps. Loops can be nested within other loops.
 
 ### Control Commands ###
-
 `program`: This command starts storing a program to run later, and clears any
 previously-stored programs. Any command not placed between `program` and `end`
 will be immediately executed, allowing direct control over the device pins.
@@ -272,28 +277,28 @@ in `interpreter.c` to match the capabilities and clock speed of the new chip.
 On the ATmega32u4 clocked at 16 MHz, the following timers are used for internal
 timing, delay timing, and PWM generation.
 
-### Timer/Counter0 ###
+**Timer/Counter0**
     Prescaler: 1 (62.5 ns/count)
     Mode: Fast PWM 
     Frequency: 8-bit at 62.5 ns/count = 62.5 kHz
     OCR0A: used to define the PWM waveform on pin OC0A (B7)
     OCR0B: used to define the PWM waveform on pin OC0B (D0)
 
-### Timer/Counter1 ###
+**Timer/Counter1**
     Prescaler: 1 (62.5 ns/count)
     Mode: Fast PWM, 10-bit (ICR1 = 2^10, WGM13:0 bits set to 14)
     Frequency: 10-bit at 62.5 ns/count = 15.625 kHz
     OCR1A: used to define the PWM waveform on pin OC1A (B5)
     OCR1B: used to define the PWM waveform on pin OC1B (B6)
 
-### Timer/Counter3 ###
+**Timer/Counter3**
     Prescaler: 8 (0.5 µs/count)
     Mode: Normal
     OCR3A: used for ms timer ISR, which increments register by 2000 each call
     OCR3B: used for µs timer: set to desired delay time and then wait on OCF3B
     OCR3C: used for USB task timer ISR, must be set to 60000 (30 ms) or less
 
-### Timer/Counter4 ###
+**Timer/Counter4**
     Prescaler: 2 (125 ns/count)
     Mode: Fast PWM, 8-bit (OCR4C = 2^8)
     Frequency: 8-bit at 125 ns/count = 31.25 kHz
