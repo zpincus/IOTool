@@ -319,7 +319,7 @@ Alternately, one could wait for the leading edge of the switch closure (after
 a minimal wait time to exclude spikes from electromagnetic interference), and 
 then simply not look for switching events for the length of time the switch 
 might bounce for (100 ms, say). For example, here's a simple program that toggles
-a LED on pin B0 in accordance with a toggled switch on B1:
+a LED on pin B1 in accordance with a toggled switch on B0:
 
     wh B0
     sh B1
