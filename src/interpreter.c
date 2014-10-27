@@ -152,7 +152,7 @@ bool parse_pin(char **in, void *dst) {
             break;
         }
     }
-    for (uint8_t i = 0; i < PIN_MAX; i++) {        
+    for (uint8_t i = 0; i < NUM_PINS; i++) {        
         if (in_ptr[0] == pins[i].name[0] && (pins[i].name[1] == '\0' || in_ptr[1] == pins[i].name[1])) {
             *(uint8_t *)dst = i;
             if (pins[i].name[1] == '\0') {

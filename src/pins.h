@@ -23,7 +23,7 @@ struct pin {
 };
 
 extern struct pin pins[];
-extern uint8_t PIN_MAX;
+extern uint8_t NUM_PINS;
 
 #define SET_PIN_LOW(_PIN_IDX, _REGISTER) SET_MASK_LO(*(pins[_PIN_IDX]._REGISTER), pins[_PIN_IDX].pin_mask)
 #define SET_PIN_HIGH(_PIN_IDX, _REGISTER) SET_MASK_HI(*(pins[_PIN_IDX]._REGISTER), pins[_PIN_IDX].pin_mask)

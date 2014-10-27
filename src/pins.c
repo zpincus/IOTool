@@ -47,4 +47,4 @@ struct pin pins[] = {
     INIT_PIN(A0, F, 7)
 };
 
-uint8_t PIN_MAX = ARRAYLEN(pins) - 1;
+uint8_t NUM_PINS = ARRAYLEN(pins);
