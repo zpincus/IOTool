@@ -10,7 +10,7 @@ LUFA_PATH    = ../../lufa-LUFA-140928/LUFA
 
 # Set this to the serial port (/dev/tty/something on Mac/Linux; COMx on Windows)
 # that appears when the device is attached and the reset button is pressed.
-AVRDUDE_PORT = /dev/tty.usbmodemfa131
+AVRDUDE_PORT = /dev/tty.usbmodemfd121
 
 #############################
 # IOTool Internal Variables #

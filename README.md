@@ -222,32 +222,36 @@ A compile-time option chooses between the AVR and Arduino pin names listed
 below. If the `ARD_PINS` line is uncommented in the Makefile, then the Arduino
 pin names will be used. Otherwise the AVR names are default.
 
-    AVR   Arduino   Comment on Arduino Pin
-    B0    SS        Also Receive LED (Not connected to a pin on Leonardo)
-    B1    SC        Marked SCK on Micro (in ICSP pin cluster on Leonardo)
-    B2    MO        Marked MOSI on Micro (in ICSP pin cluster on Leonardo)
-    B3    MI        Marked MISO on Micro (in ICSP pin cluster on Leonardo)
-    B4    8         
-    B5    9         
-    B6    10        
-    B7    11        
-    C6    5         
-    C7    13        Also bootloader LED on Arduino
-    D0    3         
-    D1    2         
-    D2    RX        
-    D3    TX        
-    D4    4         
-    D5    TL        Transmit LED, not connected to any pin on Arduino
-    D6    12        
-    D7    6         
-    E6    7         
-    F0    A5        
-    F1    A4        
-    F4    A3        
-    F5    A2        
-    F6    A1        
-    F7    A0        
+    AVR  Arduino  PWM?  Comment on Arduino Pin
+    B0   SS             Also Receive LED / Not connected to a pin on Leonardo
+    B1   SC             Marked SCK on Micro / In ICSP pin cluster on Leonardo
+    B2   MO             Marked MOSI on Micro / In ICSP pin cluster on Leonardo
+    B3   MI             Marked MISO on Micro / In ICSP pin cluster on Leonardo
+    B4   8              
+    B5   9        (3)   
+    B6   10       (3)   
+    B7   11       (1)   
+    C6   5              
+    C7   13       (2)   Also bootloader LED on Arduino
+    D0   3        (1)   
+    D1   2              
+    D2   RX             
+    D3   TX             
+    D4   4              
+    D5   TL             Transmit LED, not connected to any pin on Arduino
+    D6   12             
+    D7   6        (2)   
+    E6   7              
+    F0   A5             
+    F1   A4             
+    F4   A3             
+    F5   A2             
+    F6   A1             
+    F7   A0             
+    
+    (1)  8-bit @ 62.500 kHz
+    (2)  8-bit @ 31.250 kHz
+    (3) 10-bit @ 15.625 kHz
     
 Program Step Execution Speed
 ----------------------------
