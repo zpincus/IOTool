@@ -105,7 +105,7 @@ Scripting Language Specification
     dm d        delay ms: uint16 ms delay
     du d        delay µs: uint16 µs delay
     tb          begin timing
-    te          end timing and output elapsed ms (to 0.5 µs precision)
+    te          end timing and output elapsed time in µs (~65 sec max time)
     sh p        set high: pin name
     sl p        set low: pin name
     st p        set high-impedance "tri-state": pin name
