@@ -302,6 +302,7 @@ On a chip clocked at 16 MHz, the following commands were timed as follows:
     
 **Testing methodology:** the following program was run, using an Adafruit
  ATmega32u4 Breakout+, with an oscilloscope attached to pin D6. 
+
     program
     sh D6
     <TEST COMMAND>
