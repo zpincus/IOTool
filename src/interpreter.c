@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
 #include "interpreter.h"
 #include "usb_serial.h"
 #include "pins.h"
@@ -30,6 +31,9 @@ const char ECHO_OFF_PSTR[] PROGMEM = "\x80\xff";
 #define HEAP_PER_STEP 3
 #define MAX_LOOP_COMMANDS 10
 
+#define AVCC_ADMUX BIT(REFS0)
+#define AREF_ADMUX 0
+
 command_t program[MAX_PROGRAM_STEPS];
 uint8_t program_heap[MAX_PROGRAM_STEPS*HEAP_PER_STEP];
 uint16_t program_size = 0; // must be uint16 to be able to hold the value of 256, indicating that program is full
@@ -42,10 +46,10 @@ typedef enum {IMMEDIATE, ON_RUN} mode_t;
 mode_t execute_mode = IMMEDIATE;
 
 ISR(TIMER3_COMPA_vect) {
+    ms_timer++; // add one ms
     if (ms_timer == ms_timer_target) {
         ms_timer_done = true;
     }
-    ms_timer++; // add one ms
     OCR3A += 2000; // fire ISR again in 1 ms (wraparound expected; works great)
 }
 
@@ -92,6 +96,13 @@ void interpreter_init(void) {
     TCCR4B = BIT(CS41); // start clock, prescaler=2 (freq=8 MHz, period=125 ns)
     
     sei(); // enable interrupts
+    
+    // ADC
+    ADCSRA = BIT(ADPS2) | BIT(ADPS0); // prescaler = 32 gives 500 kHz ADC clock: fast, but some resolution loss over 128 kHz
+    ADCSRB = BIT(ADHSM); // "high speed mode" purportedly gives better ADC resolution at fast clocks
+    ADMUX = AVCC_ADMUX; // Default to AVcc as the voltage ref
+    ADCSRA |= BIT(ADEN) | BIT(ADSC); // enable ADC and start a conversion to initialize the circuitry
+    while (GET_BIT(ADCSRA, ADSC)) {} // wait for the first conversion to end
 }
 
 
@@ -175,8 +186,8 @@ bool parse_space_to_end(char *in) {
     return true;
 }
 
-typedef enum {NOERR, BAD_FUNC, BAD_PARAM, NOT_PWM, NO_ROOM} err_t;
-typedef enum {PROGRAM, END, RUN, ADD_STEP, ECHO_OFF} input_action_t;
+typedef enum {NOERR, BAD_FUNC, BAD_PARAM, NOT_PWM, NOT_ANALOG, NO_ROOM} err_t;
+typedef enum {PROGRAM, END, RUN, ADD_STEP, ECHO_OFF, RESET, AREF} input_action_t;
 
 // forwared decl
 err_t add_program_step(char *line, command_t *function_out);
@@ -190,6 +201,7 @@ void interpret_line(char *line) {
     input_action_t action;
     bool success = true;
     uint16_t num_iters = 0;
+    uint8_t admux_val = AVCC_ADMUX;
     char *rest;
     
     if (strncmp_P(line, PSTR("program"), 7) == 0) {
@@ -211,6 +223,17 @@ void interpret_line(char *line) {
     } else if (strncmp_P(line, ECHO_OFF_PSTR, 2) == 0) {
         action = ECHO_OFF;
         rest = line+2;
+    } else if (strncmp_P(line, PSTR("reset"), 5) == 0) {
+        action = RESET;
+        rest = line+5;
+    } else if (strncmp_P(line, PSTR("aref"), 4) == 0) {
+        action = AREF;
+        admux_val = AREF_ADMUX; // use ARef as the voltage ref
+        rest = line+4;
+    } else if (strncmp_P(line, PSTR("avcc"), 4) == 0) {
+        action = AREF;
+        admux_val = AVCC_ADMUX; // use AVcc as the voltage ref
+        rest = line+4;
     } else {
         action = ADD_STEP;
     }
@@ -233,6 +256,7 @@ void interpret_line(char *line) {
             break;
         case END:
             execute_mode = IMMEDIATE;
+            usb_serial_write_string_P(PSTR("OK\n"));
             break;
         case ECHO_OFF:
             if (!usb_serial_echo) {
@@ -241,6 +265,12 @@ void interpret_line(char *line) {
             } else {
                 usb_serial_echo = false;
             }
+            break;
+        case RESET:
+            wdt_enable(WDTO_15MS);
+            break;
+        case AREF:
+            ADMUX = admux_val;
             break;
         case ADD_STEP:
             result = add_program_step(line, &function);
@@ -253,6 +283,9 @@ void interpret_line(char *line) {
                     break;
                 case NOT_PWM:
                     usb_serial_write_string_P(PSTR("ERROR: Specified pin is not PWM-enabled\n"));
+                    break;
+                case NOT_ANALOG:
+                    usb_serial_write_string_P(PSTR("ERROR: Specified pin cannot be used for analog input\n"));
                     break;
                 case NO_ROOM:
                     usb_serial_write_string_P(PSTR("ERROR: Too many function steps\n"));
@@ -308,14 +341,14 @@ err_t add_program_step(char *line, command_t *function_out) {
         function = &set_wait_time;
         success = parse_uint16(&params, 0x7FFF, heap_end);
         (*(uint16_t *) heap_end) *= 2; // the delay is internally in half-microseconds
-    } else if (strncmp_P(line, PSTR("rh"), 2) == 0) {
-        function = &raw_wait_high;
+    } else if (strncmp_P(line, PSTR("uh"), 2) == 0) {
+        function = &undebounced_wait_high;
         success = parse_pin(&params, heap_end);
-    } else if (strncmp_P(line, PSTR("rl"), 2) == 0) {
-        function = &raw_wait_low;
+    } else if (strncmp_P(line, PSTR("ul"), 2) == 0) {
+        function = &undebounced_wait_low;
         success = parse_pin(&params, heap_end);
-    } else if (strncmp_P(line, PSTR("rc"), 2) == 0) {
-        function = &raw_wait_change;
+    } else if (strncmp_P(line, PSTR("uc"), 2) == 0) {
+        function = &undebounced_wait_change;
         success = parse_pin(&params, heap_end);
     } else if (strncmp_P(line, PSTR("dm"), 2) == 0) {
         function = &delay_milliseconds;
@@ -324,6 +357,10 @@ err_t add_program_step(char *line, command_t *function_out) {
         function = &delay_microseconds;
         success = parse_uint16(&params, 0x7FFF, heap_end);
         (*(uint16_t *) heap_end) *= 2; // the delay is internally in half-microseconds
+    } else if (strncmp_P(line, PSTR("tb"), 2) == 0) {
+        function = &timer_begin;
+    } else if (strncmp_P(line, PSTR("te"), 2) == 0) {
+        function = &timer_end;
     } else if (strncmp_P(line, PSTR("pm"), 2) == 0) {
         success = parse_pin(&params, heap_end);
         if (success) {
@@ -349,6 +386,18 @@ err_t add_program_step(char *line, command_t *function_out) {
     } else if (strncmp_P(line, PSTR("st"), 2) == 0) {
         function = &set_tristate;
         success = parse_pin(&params, heap_end);
+    } else if (strncmp_P(line, PSTR("rd"), 2) == 0) {
+        function = &read_digital;
+        success = parse_pin(&params, heap_end);
+    } else if (strncmp_P(line, PSTR("ra"), 2) == 0) {
+        function = &read_analog;
+        success = parse_pin(&params, heap_end);
+        if (success) {
+            struct pin *pin = pins + *(uint8_t *)(heap_end); // dig out parsed pin number
+            if (!pin->adc_mux_bits) {
+                return NOT_ANALOG;
+            }
+        }
     } else if (strncmp_P(line, PSTR("ct"), 2) == 0) {
         function = &char_transmit;
         success = parse_uint8(&params, 255, heap_end);

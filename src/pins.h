@@ -20,6 +20,8 @@ struct pin {
     bool pwm16; // if true, ocr is a 16-bit integer register
     volatile uint8_t *const tccr; // timer control register for connecting and disconnecting PWM
     const uint8_t tccr_mask; // set high to connect the PWM
+	const uint8_t adc_mux_bits; // lower 5 bits correspond to appropriate MUX5..0 bits for ADC registers,
+	                            // top bit is 1 if ADC is available on this pin at all.
 };
 
 extern struct pin pins[];
@@ -30,5 +32,10 @@ extern uint8_t NUM_PINS;
 #define GET_PIN(_PIN_IDX, _REGISTER) GET_MASK(*(pins[_PIN_IDX]._REGISTER), pins[_PIN_IDX].pin_mask)
 #define ENABLE_PWM(_PIN_IDX) SET_MASK_HI(*(pins[_PIN_IDX].tccr), pins[_PIN_IDX].tccr_mask)
 #define DISABLE_PWM(_PIN_IDX) SET_MASK_LO(*(pins[_PIN_IDX].tccr), pins[_PIN_IDX].tccr_mask)
+
+#define ADMUX_MUX_MASK (BIT(MUX4) | BIT(MUX3) | BIT(MUX2) | BIT(MUX1) | BIT(MUX0))
+#define ADCSRB_MUX_MASK (BIT(MUX5))
+#define ADC_MUX(_PIN_IDX) { SET_MASKED_BITS(ADMUX, ADMUX_MUX_MASK, pins[_PIN_IDX].adc_mux_bits);\
+                            SET_MASKED_BITS(ADCSRB, ADCSRB_MUX_MASK, pins[_PIN_IDX].adc_mux_bits); } 
 
 #endif /* pins_h */

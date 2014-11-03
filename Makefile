@@ -10,7 +10,7 @@ LUFA_PATH    = ../../lufa-LUFA-140928/LUFA
 
 # Set this to the serial port (/dev/tty/something on Mac/Linux; COMx on Windows)
 # that appears when the device is attached and the reset button is pressed.
-AVRDUDE_PORT = /dev/tty.usbmodemfd121
+AVRDUDE_PORT = /dev/tty.usbmodemfa131
 
 #############################
 # IOTool Internal Variables #
@@ -22,7 +22,7 @@ F_USB        = $(F_CPU)
 OPTIMIZATION = 3
 TARGET       = IOTool
 SRC          = $(wildcard src/*.c) $(LUFA_SRC_USB_DEVICE) $(LUFA_PATH)/Drivers/USB/Class/Device/CDCClassDevice.c
-CC_FLAGS     = $(ARD_PINS) -DUSE_LUFA_CONFIG_HEADER -Isrc
+CC_FLAGS     = $(ARD_PINS) -DUSE_LUFA_CONFIG_HEADER -Isrc -Wall -Werror
 LD_FLAGS     =
 OBJDIR       = build
 

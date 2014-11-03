@@ -99,26 +99,32 @@ Scripting Language Specification
     wh p        wait high: pin name
     wl p        wait low: pin name
     wc p        wait change: pin name
-    wt d        set wait time: uint16 µs delay
-    rh p        raw wait high: pin name
-    rl p        raw wait low: pin name
-    rc p        raw wait change: pin name
+    wt d        set debounce wait time: uint16 µs delay
+    rd p        read digital TTL value: pin name
+    ra p        read analog value: pin name
     dm d        delay ms: uint16 ms delay
     du d        delay µs: uint16 µs delay
-    pm p v      set PWM: pin name, uint8 or uint16 value
+    tb          begin timing
+    te          end timing and output elapsed ms (to 0.5 µs precision)
     sh p        set high: pin name
     sl p        set low: pin name
     st p        set high-impedance "tri-state": pin name
+    pm p v      set PWM: pin name, uint8 or uint16 value
     ct b        character transmit: uint8 byte
     cr          character receive
     lo i c      loop: uint8 index, uint16 count
     go i        goto: uint8 index
+    no          no-op
     
     program     start programming, clearing previous
     end         end programming, return to immediate-execution mode
     run c       run program: uint16 count (optional, defaults to one run)
     \x80\xFF    turn serial echo off for non-interactive use
     !           break out of currently executing run
+    reset       hard-reset the microcontroller (jumping back to the bootloader,
+                if one is present).
+    aref        set analog reference to aref pin
+    avcc        set analog reference to Vcc (5V)
 (See section below on pin names for further details.)
 
 ### PWM-capable pins ###
@@ -135,26 +141,37 @@ pin of a high, low, or different-from-current value (respectively). A "stable"
 reading is defined as pulse lasting longer than the currently set wait time,
 which defaults to 10 µs. This provides protection against stray
 electromagnetic interference. Note that the specified pin is set to input and
-the internal pull-up resistor is enabled before readings are taken.
+the internal pull-up resistor is enabled before readings are taken. To disable
+the stability check, set the wait time to 0 (see below).
 
 **Set waiting time for stable readings:** `wt time`, where 0 < _time_ < 2^15,
 in microseconds. The `wh`, `wl`, and `wc` commands wait for a pulse to read at
 the desired level for at least this many µs before returning. The default is
 10 µs.
 
-**Wait for specific pin value without delay:** `rh pin` (raw wait for high), `rl
-pin` (raw wait for low), and `rc pin` (raw wait for change), where _pin_ is a
-one- or two-character pin name. As soon as a pin change to the desired state
-is detected, these commands return. There is no protection against
-bounce/electromagnetic interference in raw wait modes. However, the response
-time is faster (see timing data below). The specified pin is set to input and
-the internal pull-up resistor is enabled before readings are taken.
+**Read a pin's value**: `rd pin` (read digital) and `ra pin` (read analog) read
+the value on a given pin and output the value as `0` or `1` for digital reads,
+or a value in the range [0, 1023] for analog. The analog value returned equals
+(1023*v-pin)/v-ref, where v-pin is the voltage on the pin, and v-ref is the 
+reference voltage chosen by the `aref` or `avcc` commands (see below). For
+digital reads, the wait time (above) is used to determine whether the pin is
+stable before returning a reading. To disable this check, set wait time to 0.
+NB: Not all pins can be used for analog input (see pin information below).
 
 **Delay a given interval:** `dm ms` (delay milliseconds) and `du us` (delay
 micoseconds), where 0 ≤ _ms_ < 2^16 and 0 ≤ _us_ < 2^15. Note: these
 delay times are for a chip clocked at 16 MHz. For other clock speeds, adjust
 accordingly, or alter the timer counter values (described in the 'Porting'
 section below).
+
+**Timing:** `tb` (begin timing) and `te` (end timing). The interval (in
+microseconds) between `tb` and `te` is output. The maximum timer value is
+65567768 microseconds before before overflowing back to zero. NB: back-to-back
+`tb` and `te` commands will measure about 4 µs of overhead on a 16 MHz chip.
+To measure a high pulse on a pin, for example, run the program: `wh` `tb` `wl`
+`te`. Pulses as short as 12 µs can be measured accurately in this context, as
+there is some overhead associated with `wh` and `wl` as well (see timing data
+below).
 
 **Set a pin's value:** `sh pin` (set high), `sl pin` (set low), and `st pin`
 (set tristate), where _pin_ is a one- or two-character pin name. The effects
@@ -197,6 +214,9 @@ will be immediately executed, allowing direct control over the device pins.
 will be ignored.)
 
 `end`: end programming, which returns the device to immediate-execution mode.
+The string "OK\r\n" is transmitted to the host computer. (Any response, other
+than this OK and any echoes, between `program` and `end`, indicates an error
+in programming.)
 
 `run count`: run the program _count_ times (0 < _count_ < 2^16). If _count_
 is not specified, the program is run one time. At the end of the program runs,
@@ -215,6 +235,14 @@ to permit the microsecond timer to have the best possible precision by not
 having to poll the USB port during the interval.) This allows the host to
 indefinitely run a script using a `go` loop, and then cancel out of the script
 when required.
+
+`reset`: Perform a hard-reset of the device (via the watchdog timer), which
+will put the device in a known-good state. Sending the string `!\nreset\n`, and
+then waiting for the device's serial port to disappear and re-appear will
+guarantee that the device is has started from scratch.
+
+`aref` and `avcc`: Set whether the analog reference voltage is defined by the
+Aref pin, or by the internal Vcc (usually 5V).
     
 AVR and Arduino Pin Names
 -------------------------
@@ -222,32 +250,32 @@ A compile-time option chooses between the AVR and Arduino pin names listed
 below. If the `ARD_PINS` line is uncommented in the Makefile, then the Arduino
 pin names will be used. Otherwise the AVR names are default.
 
-    AVR  Arduino  PWM?  Comment on Arduino Pin
-    B0   SS             Also Receive LED / Not connected to a pin on Leonardo
-    B1   SC             Marked SCK on Micro / In ICSP pin cluster on Leonardo
-    B2   MO             Marked MOSI on Micro / In ICSP pin cluster on Leonardo
-    B3   MI             Marked MISO on Micro / In ICSP pin cluster on Leonardo
-    B4   8              
-    B5   9        (3)   
-    B6   10       (3)   
-    B7   11       (1)   
-    C6   5              
-    C7   13       (2)   Also bootloader LED on Arduino
-    D0   3        (1)   
-    D1   2              
-    D2   RX             
-    D3   TX             
-    D4   4              
-    D5   TL             Transmit LED, not connected to any pin on Arduino
-    D6   12             
-    D7   6        (2)   
-    E6   7              
-    F0   A5             
-    F1   A4             
-    F4   A3             
-    F5   A2             
-    F6   A1             
-    F7   A0             
+    AVR  Arduino  PWM?  Analog?  Comment on Arduino Pin
+    B0   SS                      Also Receive LED / Not connected to a pin on Leonardo
+    B1   SC                      Marked SCK on Micro / In ICSP pin cluster on Leonardo
+    B2   MO                      Marked MOSI on Micro / In ICSP pin cluster on Leonardo
+    B3   MI                      Marked MISO on Micro / In ICSP pin cluster on Leonardo
+    B4   8                Y      
+    B5   9        (3)     Y      
+    B6   10       (3)     Y      
+    B7   11       (1)            
+    C6   5                       
+    C7   13       (2)            Also bootloader LED on Arduino
+    D0   3        (1)            
+    D1   2                       
+    D2   RX                      
+    D3   TX                      
+    D4   4                Y      
+    D5   TL                      Transmit LED, not connected to a pin on Arduino
+    D6   12               Y      
+    D7   6        (2)     Y      
+    E6   7                       
+    F0   A5               Y      
+    F1   A4               Y      
+    F4   A3               Y      
+    F5   A2               Y      
+    F6   A1               Y      
+    F7   A0               Y      
     
     (1)  8-bit @ 62.500 kHz
     (2)  8-bit @ 31.250 kHz
@@ -257,19 +285,36 @@ Program Step Execution Speed
 ----------------------------
 On a chip clocked at 16 MHz, the following commands were timed as follows:
 
-    wh: 9.0 µs + delay specified by wt + time waiting for signal
-    wl: 9.0 µs + delay specified by wt + time waiting for signal
-    rh: 6.7 µs + time waiting for signal
-    rl: 6.7 µs + time waiting for signal
-    dm: 10.6 µs + delay time
-    du: 4.8 µs + delay time
-    pm: 5.5 µs for 8-bit PWM and 5.8 µs for 10-bit
-    sh: 6.0 µs
-    sl: 6.0 µs
-    st: 6.0 µs
-    ct: ~22 µs, depending on USB bus
-    lo: 6.0 µs + 5 µs overhead per iteration
+    wh/wl: 7.2 µs + time waiting for signal (wt = 0)
+    wh/wl: 10.4 µs + delay specified by wt + time waiting for signal (wt > 0)
+    dm: 15 µs + delay time
+    du: 4.5 µs + delay time
+    pm: 5.4 µs for 8-bit PWM and 5.7 µs for 10-bit
+    sh/sl/st: 5.8 µs
+    ct: >17 µs (variability due to USB bus)
+    rd: >30 µs + delay specified by wt (variability due to USB bus)
+    ra: >90 µs (variability due to USB bus and number of digits returned)
+    tb: 5.2 µs
+    te: >52 µs (variability due to USB bus and number of digits returned)
+    lo: 5.4 µs + 5 µs overhead per iteration
     go: 2.9 µs
+    no: 2.6 µs
+    
+**Testing methodology:** the following program was run, using an Adafruit
+ ATmega32u4 Breakout+, with an oscilloscope attached to pin D6. 
+    program
+    sh D6
+    <TEST COMMAND>
+    lo 1 1000
+    sl D6
+    du 500
+    go 0
+    end
+
+The width of the "high" pulses on pin D6 were measured for all of the commands
+listed, and subtracted from the pulse width with no command at all. For `wh`
+and `wl`, the test pin was attached to Vcc or Gnd respectively, so there should
+be no actual waiting.
 
 Porting to Another AVR Microcontroller
 --------------------------------------

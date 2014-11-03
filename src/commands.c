@@ -11,24 +11,27 @@
 #include "utils.h"
 #include "pins.h"
 #include "usb_serial.h"
+#include <stdlib.h>
+#include <string.h>
 
 uint16_t steady_wait_time_half_us = 20;
+uint16_t starting_us_timer;
 
-void raw_wait_high(void *params) {
+void undebounced_wait_high(void *params) {
     uint8_t pin_number = *(uint8_t *) params;
     SET_PIN_LOW(pin_number, ddr); // set pin for input
     SET_PIN_HIGH(pin_number, port); // enable pullup resistor
     while (!GET_PIN(pin_number, pin) && running) {}
 }
 
-void raw_wait_low(void *params) {
+void undebounced_wait_low(void *params) {
     uint8_t pin_number = *(uint8_t *) params;
     SET_PIN_LOW(pin_number, ddr); // set pin for input
     SET_PIN_HIGH(pin_number, port); // enable pullup resistor
     while (GET_PIN(pin_number, pin) && running) {}
 }
 
-void raw_wait_change(void *params) {
+void undebounced_wait_change(void *params) {
     uint8_t pin_number = *(uint8_t *) params;
     SET_PIN_LOW(pin_number, ddr); // set pin for input
     SET_PIN_HIGH(pin_number, port); // enable pullup resistor
@@ -37,14 +40,15 @@ void raw_wait_change(void *params) {
 }
 
 void steady_wait(uint8_t pin_number, uint8_t target) {
-    while (GET_PIN(pin_number, pin) != target && running) {}
     TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
     TIFR3 = BIT(OCF3B); // clear any timer-match flags present
     OCR3B = TCNT3 + steady_wait_time_half_us; // set up match time (wraparound expected; works great)
     TCCR3B = TIMER3_ENABLE; // start timer 3
-    while (!(TIFR3 & BIT(OCF3B)) && running) {
-        if (GET_PIN(pin_number, pin) != target) { // if the pin changes, reset the wait time
+    while (!GET_BIT(TIFR3, OCF3B) && running) {
+        if ((GET_PIN(pin_number, pin) != 0) != target) { // if the pin changes, reset the wait time
+            //NB: the (GET_PIN(pin_number, pin) != 0) bit above is to convert a pin value, which could be any bit set in the byte, to a strict 0 or 1
             TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
+            TIFR3 = BIT(OCF3B); // clear any timer-match flags present
             OCR3B = TCNT3 + steady_wait_time_half_us; // set up match time (wraparound expected; works great)
             TCCR3B = TIMER3_ENABLE; // start timer 3
         }
@@ -55,14 +59,22 @@ void wait_high(void *params) {
     uint8_t pin_number = *(uint8_t *) params;
     SET_PIN_LOW(pin_number, ddr); // set pin for input
     SET_PIN_HIGH(pin_number, port); // enable pullup resistor
-    steady_wait(pin_number, 1);
+    while (!GET_PIN(pin_number, pin) && running) {}
+    if (steady_wait_time_half_us) {
+        steady_wait(pin_number, 1);
+        // steady_wait_hi(pin_number);
+    }
 }
 
 void wait_low(void *params) {
     uint8_t pin_number = *(uint8_t *) params;
     SET_PIN_LOW(pin_number, ddr); // set pin for input
     SET_PIN_HIGH(pin_number, port); // enable pullup resistor
-    steady_wait(pin_number, 0);
+    while (GET_PIN(pin_number, pin) && running) {}
+    if (steady_wait_time_half_us) {
+        steady_wait(pin_number, 0);
+        // steady_wait_lo(pin_number);
+    }
 }
 
 void wait_change(void *params) {
@@ -70,7 +82,10 @@ void wait_change(void *params) {
     SET_PIN_LOW(pin_number, ddr); // set pin for input
     SET_PIN_HIGH(pin_number, port); // enable pullup resistor
     uint8_t current = GET_PIN(pin_number, pin);
-    steady_wait(pin_number, !current);
+    while (GET_PIN(pin_number, pin) == current && running) {}
+    if (steady_wait_time_half_us) {
+        steady_wait(pin_number, !current);
+    }
 }
 
 void set_wait_time(void *params) {
@@ -82,12 +97,16 @@ void delay_milliseconds(void *params) {
     ms_timer = 0;
     ms_timer_target = ms_delay;
     ms_timer_done = false;
+    if (ms_timer_target == 0) {
+        return; // special case for bizarre request of 0 ms delay
+    }
     TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
-    TIMSK3 |= MS_TIMER_MASK; // enable millisecond timer
-    OCR3A = TCNT3; // Fire off the millisecond timer immediately after starting the clocks
+    TIFR3 = BIT(OCF3A); // clear previous output compare matches so ms timer ISR doesn't fire immediately on being enabled
+    SET_MASK_HI(TIMSK3, MS_TIMER_MASK); // enable millisecond timer
+    OCR3A = TCNT3 + 2000; // Fire off the millisecond timer 1 ms after starting the clocks
     TCCR3B = TIMER3_ENABLE; // start timer 3
     while (!ms_timer_done && running) {}
-    TIMSK3 &= ~MS_TIMER_MASK; // disable millisecond timer
+    SET_MASK_LO(TIMSK3, MS_TIMER_MASK); // disable millisecond timer
 }
 
 void delay_microseconds(void *params) {
@@ -97,8 +116,35 @@ void delay_microseconds(void *params) {
     TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
     OCR3B = TCNT3 + half_us_delay; // set up match time (wraparound expected; works great)
     TCCR3B = TIMER3_ENABLE; // start timer 3
-    while (!(TIFR3 & BIT(OCF3B))) {}
+    while (!GET_BIT(TIFR3, OCF3B)) {}
     TIMSK3 = USB_TIMER_MASK;
+}
+
+void timer_begin(void *params) {
+    ms_timer = 0;
+    TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
+    TIFR3 = BIT(OCF3A); // clear previous output compare matches so ms timer ISR doesn't fire immediately on being enabled
+    SET_MASK_HI(TIMSK3, MS_TIMER_MASK); // enable millisecond timer
+    OCR3A = TCNT3 + 2000; // Fire off the millisecond timer 1 ms after starting the clocks
+    starting_us_timer = TCNT3;
+    TCCR3B = TIMER3_ENABLE; // start timer 3
+}
+
+void timer_end(void *params) {
+    TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
+    uint16_t us_timer = TCNT3;
+    SET_MASK_LO(TIMSK3, MS_TIMER_MASK); // disable millisecond timer
+    TCCR3B = TIMER3_ENABLE; // start timer 3
+    uint16_t half_us_timed = (us_timer - starting_us_timer) % 2000; // wraparound expected for the subtraction; no problem
+    uint32_t us_timed = ((uint32_t) ms_timer)*1000 + half_us_timed/2;
+    if (half_us_timed % 2) {
+        us_timed++;
+    }
+    char result[11];
+    ultoa(us_timed, result, 10);
+    usb_serial_write_string(result);
+    usb_serial_write_byte('\n');
+    usb_serial_flush();
 }
 
 void pwm8(void *params) {
@@ -157,6 +203,47 @@ void char_receive(void *params) {
 void char_transmit(void *params) {
     uint8_t output = *(uint8_t *) params;
     usb_serial_write_byte(output);
+    usb_serial_flush();
+}
+
+void read_digital(void *params) {
+    uint8_t pin_number = *(uint8_t *) params;
+    SET_PIN_LOW(pin_number, ddr); // set pin for input
+    SET_PIN_LOW(pin_number, port); // disable pullup resistor
+    uint8_t value = GET_PIN(pin_number, pin);
+    if (steady_wait_time_half_us) {
+        TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
+        TIFR3 = BIT(OCF3B); // clear any timer-match flags present
+        OCR3B = TCNT3 + steady_wait_time_half_us; // set up match time (wraparound expected; works great)
+        TCCR3B = TIMER3_ENABLE; // start timer 3
+        while (!GET_BIT(TIFR3, OCF3B) && running) {
+            uint8_t now_value = GET_PIN(pin_number, pin);
+            if (now_value != value) { // if the pin changes, reset the wait time
+                value = now_value;
+                TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
+                OCR3B = TCNT3 + steady_wait_time_half_us; // set up match time (wraparound expected; works great)
+                TCCR3B = TIMER3_ENABLE; // start timer 3
+            }
+        }
+    }
+    if (value) {
+        usb_serial_write_byte('1');
+    } else {
+        usb_serial_write_byte('0');
+    }
+    usb_serial_write_byte('\n');
+    usb_serial_flush();
+}
+
+void read_analog(void *params) {
+    uint8_t pin_number = *(uint8_t *) params;
+    ADC_MUX(pin_number);
+    SET_BIT_HI(ADCSRA, ADSC); // start ADC conversion
+    while (GET_BIT(ADCSRA, ADSC)) {} // wait for the conversion to end
+    char result[5];
+    utoa((uint16_t) ADC, result, 10);
+    usb_serial_write_string(result);
+    usb_serial_write_byte('\n');
     usb_serial_flush();
 }
 

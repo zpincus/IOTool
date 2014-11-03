@@ -9,7 +9,7 @@
 #include "usb_serial.h"
 #include "interpreter.h"
 
-void main(void) {
+int main(void) {
     platform_init();
     usb_serial_init();
     interpreter_init();
@@ -17,5 +17,6 @@ void main(void) {
     for (;;) {
         interpret_line(usb_serial_read_line());
     }
-
+    
+    return 0;
 }

@@ -70,4 +70,6 @@ typedef unsigned int  uint_t;
 #define SET_MASK_HI(V, M)   (V) |= (uint8_t)(M)       // Set mask bits hi.
 #define SET_MASK_LO(V, M)   (V) &= (uint8_t)~(M)      // Set mask bits lo.
 
+#define SET_MASKED_BITS(V, M, S) (V) = (V & (uint8_t) ~(M)) | (S & (uint8_t) (M))
+
 #endif  /* utils_h */
