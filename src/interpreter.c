@@ -24,8 +24,6 @@ volatile uint16_t ms_timer = 0;
 volatile uint16_t ms_timer_target;
 volatile bool ms_timer_done;
 
-const char ECHO_OFF_PSTR[] PROGMEM = "\x80\xff";
-
 #define PWM16_MAX (uint16_t) (1<<10)-1
 #define MAX_PROGRAM_STEPS 256
 #define HEAP_PER_STEP 3
@@ -33,6 +31,10 @@ const char ECHO_OFF_PSTR[] PROGMEM = "\x80\xff";
 
 #define AVCC_ADMUX BIT(REFS0)
 #define AREF_ADMUX 0
+
+const char ECHO_OFF_PSTR[] PROGMEM = "\x80\xff";
+#define PROMPT '>'
+
 
 command_t program[MAX_PROGRAM_STEPS];
 uint8_t program_heap[MAX_PROGRAM_STEPS*HEAP_PER_STEP];
@@ -189,9 +191,19 @@ bool parse_space_to_end(char *in) {
 typedef enum {NOERR, BAD_FUNC, BAD_PARAM, NOT_PWM, NOT_ANALOG, NO_ROOM} err_t;
 typedef enum {PROGRAM, END, RUN, ADD_STEP, ECHO_OFF, RESET, AREF} input_action_t;
 
-// forwared decl
+// forward decls for clarity
 err_t add_program_step(char *line, command_t *function_out);
+void interpret_line(char *line);
 
+void interpreter_main() {
+    usb_serial_write_byte(PROMPT);
+    for (;;) {
+        interpret_line(usb_serial_read_line());
+        usb_serial_write_byte(PROMPT);
+    }
+}
+
+// return whether or not to write a prompt
 void interpret_line(char *line) {
     // can assume line is null-terminated
     if (parse_space_to_end(line)) {
@@ -248,7 +260,6 @@ void interpret_line(char *line) {
         command_t function;
         case RUN:
             run_program(num_iters);
-            usb_serial_write_string_P(PSTR("DONE\n"));
             break;
         case PROGRAM:
             clear_program();
@@ -256,12 +267,14 @@ void interpret_line(char *line) {
             break;
         case END:
             execute_mode = IMMEDIATE;
-            usb_serial_write_string_P(PSTR("OK\n"));
             break;
         case ECHO_OFF:
             if (!usb_serial_echo) {
                 // always echo back the magic echo-off characters even if echo is already off
+                // Thus regardless of the current state of the echo, a user can
+                // and expect to read it back plus \r\n.
                 usb_serial_write_string_P(ECHO_OFF_PSTR);
+                usb_serial_write_byte('\n');
             } else {
                 usb_serial_echo = false;
             }

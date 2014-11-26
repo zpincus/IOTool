@@ -15,7 +15,7 @@ int main(void) {
     interpreter_init();
 
     for (;;) {
-        interpret_line(usb_serial_read_line());
+        interpreter_main();
     }
     
     return 0;

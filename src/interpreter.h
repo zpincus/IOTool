@@ -11,7 +11,7 @@
 #include "utils.h"
 
 void interpreter_init(void);
-void interpret_line(char *line);
+void interpreter_main(void);
 
 #define QUIT_BYTE 33 // '!' character
 #define MS_TIMER_MASK BIT(OCIE3A)

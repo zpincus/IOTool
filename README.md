@@ -214,19 +214,16 @@ will be immediately executed, allowing direct control over the device pins.
 will be ignored.)
 
 `end`: end programming, which returns the device to immediate-execution mode.
-The string "OK\r\n" is transmitted to the host computer. (Any response, other
-than this OK and any echoes, between `program` and `end`, indicates an error
-in programming.)
 
 `run count`: run the program _count_ times (0 < _count_ < 2^16). If _count_
-is not specified, the program is run one time. At the end of the program runs,
-the string "DONE\r\n" is transmitted to the host computer.
+is not specified, the program is run one time.
 
 `\x80\xFF`: These two bytes will turn off the serial echo, which is convenient
 for non-interactive use. If echo is off, sending these two bytes will NOT turn
-echo back on, but the bytes will be echoed back. Thus the host can
-unconditionally send these bytes, read back two bytes, and be guaranteed that
-echo mode is now off, regardless of what state it started out in.
+echo back on, but the bytes and `\r\n` will be echoed back. Thus the host can
+unconditionally send these bytes, read back four bytes, and be guaranteed that
+echo mode is now off, regardless of what state it started out in. Regardless of
+echo mode, the '>' prompt will be written after each command is executed.
 
 `!`: Break out of executing a script. If the exclamation-point character is
 sent to the device, program execution immediately halts. The only exception is
