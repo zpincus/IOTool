@@ -1,6 +1,6 @@
 // Copyright 2014 Zachary Pincus (zpincus@wustl.edu / zplab.wustl.edu)
 // This file is part of IOTool.
-// 
+//
 // IOTool is free software; you can redistribute it and/or modify
 // it under the terms of version 2 of the GNU General Public License as
 // published by the Free Software Foundation.
@@ -94,7 +94,7 @@ void set_wait_time(void *params) {
 
 void delay_milliseconds(void *params) {
     uint16_t ms_delay = *(uint16_t *) params;
-    ms_timer = 0;
+    ms_timer = 0; // millisecond timer ISR should be disabled, so it's ok to set this without worrying it'll get stomped on
     ms_timer_target = ms_delay;
     ms_timer_done = false;
     if (ms_timer_target == 0) {
@@ -121,7 +121,7 @@ void delay_microseconds(void *params) {
 }
 
 void timer_begin(void *params) {
-    ms_timer = 0;
+    ms_timer = 0; // millisecond timer ISR should be disabled, so it's ok to set this without worrying it'll get stomped on
     TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
     TIFR3 = BIT(OCF3A); // clear previous output compare matches so ms timer ISR doesn't fire immediately on being enabled
     SET_MASK_HI(TIMSK3, MS_TIMER_MASK); // enable millisecond timer
@@ -131,7 +131,7 @@ void timer_begin(void *params) {
 }
 
 void timer_end(void *params) {
-    TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
+    TCCR3B = TIMER3_DISABLE; // disable timer 3 while we read registers
     uint16_t us_timer = TCNT3;
     SET_MASK_LO(TIMSK3, MS_TIMER_MASK); // disable millisecond timer
     TCCR3B = TIMER3_ENABLE; // start timer 3

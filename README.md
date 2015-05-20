@@ -40,7 +40,7 @@ Basic Usage Example
    This stores a program to set pin 13 high (turning on the Arduino's onboard
    LED), delay 500 ms, set the pin low (turning the LED off), delay 500 ms, and
    then repeat that from the first step 9 more times.
-  
+
 3. Send the text `run` followed by a newline (return key), which will
    cause the LED to blink 10 times.
 
@@ -64,7 +64,7 @@ Installation
 0.  Obtain the [LUFA USB library for AVR microcontrollers](http://www.fourwalledcubicle.com/LUFA.php)
     AVR-GCC is also required: [source](http://www.nongnu.org/avr-libc/), [Mac](http://www.obdev.at/products/crosspack)
     [Windows](http://sourceforge.net/projects/winavr).
-    
+
 1.  Configure the IOTool Makefile as follows:
 
     First, set the LUFA_PATH variable to the relative or absolute path to the
@@ -72,25 +72,25 @@ Installation
 
     Second, if you are using an Arduino device, uncomment the ARD_PINS line
     in the Makefile.
-    
+
     Third, set AVRDUDE_PORT to the name of the serial port that appears when
-    the board is plugged in and the reset button is pressed. (On Windows, 
+    the board is plugged in and the reset button is pressed. (On Windows,
     an INF file supplied by the board's manufacturer is generally required for
     the board to show up as a serial port.) If you will not be using avrdude
     to upload the firmware (e.g. with a Teensy you need to use TeensyLoader),
     skip this step.
-    
+
     If your microcontroller is not clocked at 16 MHz, adjust the F_CPU value.
     This will change the PWM frequencies and delay times, unless additional
     code modifications are made (see 'Porting' below).
-    
+
 2.  Optional: To customize the device's serial number (used on Macs and some Linuxes
     for determining the tty name), edit the relevant `#define` in `src/usb_serial_base.h`.
-    
+
 3.  Press the reset button to enable the firmware to be loaded, and run `make`
     from the IOTool directory to compile and upload the code.
-    
-4.  After the firmware is loaded, a new serial port will appear. On Windows, 
+
+4.  After the firmware is loaded, a new serial port will appear. On Windows,
     this requires the supplied `IOTool.inf` file.
 
 Scripting Language Specification
@@ -115,7 +115,7 @@ Scripting Language Specification
     lo i c      loop: uint8 index, uint16 count
     go i        goto: uint8 index
     no          no-op
-    
+
     program     start programming, clearing previous
     end         end programming, return to immediate-execution mode
     run c       run program: uint16 count (optional, defaults to one run)
@@ -152,7 +152,7 @@ the desired level for at least this many µs before returning. The default is
 **Read a pin's value**: `rd pin` (read digital) and `ra pin` (read analog) read
 the value on a given pin and output the value as `0` or `1` for digital reads,
 or a value in the range [0, 1023] for analog. The analog value returned equals
-(1023*v-pin)/v-ref, where v-pin is the voltage on the pin, and v-ref is the 
+(1023*v-pin)/v-ref, where v-pin is the voltage on the pin, and v-ref is the
 reference voltage chosen by the `aref` or `avcc` commands (see below). For
 digital reads, the wait time (above) is used to determine whether the pin is
 stable before returning a reading. To disable this check, set wait time to 0.
@@ -166,7 +166,7 @@ section below).
 
 **Timing:** `tb` (begin timing) and `te` (end timing). The interval (in
 microseconds) between `tb` and `te` is output. The maximum timer value is
-65567768 microseconds before before overflowing back to zero. NB: back-to-back
+65567767 microseconds before before overflowing back to zero. NB: back-to-back
 `tb` and `te` commands will measure about 4 µs of overhead on a 16 MHz chip.
 To measure a high pulse on a pin, for example, run the program: `wh` `tb` `wl`
 `te`. Pulses as short as 12 µs can be measured accurately in this context, as
@@ -240,7 +240,7 @@ guarantee that the device is has started from scratch.
 
 `aref` and `avcc`: Set whether the analog reference voltage is defined by the
 Aref pin, or by the internal Vcc (usually 5V).
-    
+
 AVR and Arduino Pin Names
 -------------------------
 A compile-time option chooses between the AVR and Arduino pin names listed
@@ -252,32 +252,32 @@ pin names will be used. Otherwise the AVR names are default.
     B1   SC                      Marked SCK on Micro / In ICSP pin cluster on Leonardo
     B2   MO                      Marked MOSI on Micro / In ICSP pin cluster on Leonardo
     B3   MI                      Marked MISO on Micro / In ICSP pin cluster on Leonardo
-    B4   8                Y      
-    B5   9        (3)     Y      
-    B6   10       (3)     Y      
-    B7   11       (1)            
-    C6   5                       
+    B4   8                Y
+    B5   9        (3)     Y
+    B6   10       (3)     Y
+    B7   11       (1)
+    C6   5
     C7   13       (2)            Also bootloader LED on Arduino
-    D0   3        (1)            
-    D1   2                       
-    D2   RX                      
-    D3   TX                      
-    D4   4                Y      
+    D0   3        (1)
+    D1   2
+    D2   RX
+    D3   TX
+    D4   4                Y
     D5   TL                      Transmit LED, not connected to a pin on Arduino
-    D6   12               Y      
-    D7   6        (2)     Y      
-    E6   7                       
-    F0   A5               Y      
-    F1   A4               Y      
-    F4   A3               Y      
-    F5   A2               Y      
-    F6   A1               Y      
-    F7   A0               Y      
-    
+    D6   12               Y
+    D7   6        (2)     Y
+    E6   7
+    F0   A5               Y
+    F1   A4               Y
+    F4   A3               Y
+    F5   A2               Y
+    F6   A1               Y
+    F7   A0               Y
+
     (1)  8-bit @ 62.500 kHz
     (2)  8-bit @ 31.250 kHz
     (3) 10-bit @ 15.625 kHz
-    
+
 Program Step Execution Speed
 ----------------------------
 On a chip clocked at 16 MHz, the following commands were timed as follows:
@@ -296,9 +296,9 @@ On a chip clocked at 16 MHz, the following commands were timed as follows:
     lo: 5.4 µs + 5 µs overhead per iteration
     go: 2.9 µs
     no: 2.6 µs
-    
+
 **Testing methodology:** the following program was run, using an Adafruit
- ATmega32u4 Breakout+, with an oscilloscope attached to pin D6. 
+ ATmega32u4 Breakout+, with an oscilloscope attached to pin D6.
 
     program
     sh D6
@@ -326,7 +326,7 @@ timing, delay timing, and PWM generation.
 
 ### Timer/Counter0 ###
     Prescaler: 1 (62.5 ns/count)
-    Mode: Fast PWM 
+    Mode: Fast PWM
     Frequency: 8-bit at 62.5 ns/count = 62.5 kHz
     OCR0A: used to define the PWM waveform on pin OC0A (B7)
     OCR0B: used to define the PWM waveform on pin OC0B (D0)
@@ -363,8 +363,8 @@ wait time is 32 milliseconds, but if a switch bounces longer than that, two
 a longer length.
 
 Alternately, one could wait for the leading edge of the switch closure (after
-a minimal wait time to exclude spikes from electromagnetic interference), and 
-then simply not look for switching events for the length of time the switch 
+a minimal wait time to exclude spikes from electromagnetic interference), and
+then simply not look for switching events for the length of time the switch
 might bounce for (100 ms, say). For example, here's a simple program that toggles
 a LED on pin B1 in accordance with a toggled switch on B0:
 
@@ -376,5 +376,5 @@ a LED on pin B1 in accordance with a toggled switch on B0:
     dm 100
     go 0
 
-By simply delaying 100 ms before waiting for the next switch event, the above 
+By simply delaying 100 ms before waiting for the next switch event, the above
 script excludes the possibility of reading switch bounce mistakenly.
