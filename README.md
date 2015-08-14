@@ -171,7 +171,9 @@ microseconds) between `tb` and `te` is output. The maximum timer value is
 To measure a high pulse on a pin, for example, run the program: `wh` `tb` `wl`
 `te`. Pulses as short as 12 µs can be measured accurately in this context, as
 there is some overhead associated with `wh` and `wl` as well (see timing data
-below).
+below). **NB:** the hardware timers used for these functions are also used for
+the delay commands above. As such, delay commands within a timing interval will
+essentially randomize the reported timer values, and should not be used.
 
 **Set a pin's value:** `sh pin` (set high), `sl pin` (set low), and `st pin`
 (set tristate), where _pin_ is a one- or two-character pin name. The effects
@@ -378,3 +380,24 @@ a LED on pin B1 in accordance with a toggled switch on B0:
 
 By simply delaying 100 ms before waiting for the next switch event, the above
 script excludes the possibility of reading switch bounce mistakenly.
+
+
+### Python Module ###
+A simple python module is included which eases communication with an IOTool
+device. The module works with Python 3 but is likely compatible with version 2
+as well. The module requires the [PySerial library](https://pypi.python.org/pypi/pyserial), and is currently only
+compatible with OS X and Linux.
+
+Example usage:
+    import iotool
+    device = iotool.IOTool('/dev/ttyWhatever')
+    device.execute('dm 100', 'sh B1') # delay 100 ms
+    device.execute(iotool.delay_ms(100), iotool.set_high('B1')) # equivalent
+    # set up a program that waits for a character, then sends a character
+    device.store_program(iotool.char_receive(), iotool.char_transmit('D'))
+    # run the program, then send a character to the IOTool and wait for a reply
+    device.start_program()
+    device.send_serial_char('F')
+    print(device.wait_for_serial_char())
+    # wait until the program has finished running
+    device.wait_until_done()
