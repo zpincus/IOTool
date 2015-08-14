@@ -389,6 +389,7 @@ as well. The module requires the [PySerial library](https://pypi.python.org/pypi
 compatible with OS X and Linux.
 
 Example usage:
+
     import iotool
     device = iotool.IOTool('/dev/ttyWhatever')
     device.execute('dm 100', 'sh B1') # delay 100 ms
