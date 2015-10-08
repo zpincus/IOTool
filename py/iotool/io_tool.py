@@ -41,7 +41,6 @@ class IOTool:
         except (smart_serial.SerialTimeout, RuntimeError):
             # explicitly clobber traceback from SerialTimeout exception
             raise smart_serial.SerialException('Could not communicate with IOTool device -- is it attached?')
-        self.commands = commands.Commands()
         self._serial_port.setTimeout(None) # change to infinite time-out once initialized and in known-good state,
         # so that waiting for IOTool replies won't cause timeouts
 
@@ -51,7 +50,7 @@ class IOTool:
             del self._serial_port
         self._serial_port = smart_serial.Serial(self._serial_port_name, timeout=1)
         self._serial_port.write(b'!\nreset\n')
-        time.sleep(0.5) # give it time to reboot
+        time.sleep(2) # give it time to reboot
         self._serial_port = smart_serial.Serial(self._serial_port_name, timeout=1)
         self._serial_port.write(_ECHO_OFF + b'\n') # disable echo
         echo_reply = self._wait_for_ready_prompt()
