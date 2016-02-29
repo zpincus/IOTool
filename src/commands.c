@@ -62,7 +62,6 @@ void wait_high(void *params) {
     while (!GET_PIN(pin_number, pin) && running) {}
     if (steady_wait_time_half_us) {
         steady_wait(pin_number, 1);
-        // steady_wait_hi(pin_number);
     }
 }
 
@@ -73,7 +72,6 @@ void wait_low(void *params) {
     while (GET_PIN(pin_number, pin) && running) {}
     if (steady_wait_time_half_us) {
         steady_wait(pin_number, 0);
-        // steady_wait_lo(pin_number);
     }
 }
 

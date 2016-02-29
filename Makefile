@@ -2,7 +2,7 @@
 # IOTool User-configurable variables #
 ######################################
 # Set LUFA_PATH to the relative or absolute path to the LUFA source directory
-LUFA_PATH    = ../../lufa-LUFA-140928/LUFA
+LUFA_PATH    = ../lufa-LUFA-140928/LUFA
 
 # If using an Arduino device and you want to use Arduino pin names, uncomment
 # the following line:
@@ -10,7 +10,7 @@ LUFA_PATH    = ../../lufa-LUFA-140928/LUFA
 
 # Set this to the serial port (/dev/tty/something on Mac/Linux; COMx on Windows)
 # that appears when the device is attached and the reset button is pressed.
-AVRDUDE_PORT = /dev/tty.usbmodemfa131
+AVRDUDE_PORT = /dev/tty.usbmodem1411
 
 #############################
 # IOTool Internal Variables #
@@ -27,7 +27,7 @@ LD_FLAGS     =
 OBJDIR       = build
 
 AVRDUDE_PROGRAMMER = avr109
-AVRDUDE_FLAGS      = 
+AVRDUDE_FLAGS      =
 
 # Upload target
 upload: all avrdude
