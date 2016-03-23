@@ -22,6 +22,7 @@
 #
 # Authors: Zach Pincus
 
+import os
 import time
 
 from . import commands
@@ -41,21 +42,27 @@ class IOTool:
         except (smart_serial.SerialTimeout, RuntimeError):
             # explicitly clobber traceback from SerialTimeout exception
             raise smart_serial.SerialException('Could not communicate with IOTool device -- is it attached?')
-        self._serial_port.setTimeout(None) # change to infinite time-out once initialized and in known-good state,
-        # so that waiting for IOTool replies won't cause timeouts
+        self.commands = commands.Commands()
 
     def reset(self):
         """Attempt to reset the IOTool device to a known-good state."""
         if hasattr(self, '_serial_port'):
             del self._serial_port
-        self._serial_port = smart_serial.Serial(self._serial_port_name, timeout=1)
+        self._serial_port = smart_serial.Serial(self._serial_port_name, timeout=2)
         self._serial_port.write(b'!\nreset\n')
-        time.sleep(2) # give it time to reboot
-        self._serial_port = smart_serial.Serial(self._serial_port_name, timeout=1)
+        time.sleep(0.5) # give it time to reboot
+        wait_start = time.time()
+        while not os.path.exists(self._config.IOTool.SERIAL_PORT):
+            time.sleep(0.1)
+            if time.time() - wait_start > 5:
+                raise smart_serial.SerialException('IOTool device did not properly reset!')
+        self._serial_port = smart_serial.Serial(self._serial_port_name, timeout=2)
         self._serial_port.write(_ECHO_OFF + b'\n') # disable echo
         echo_reply = self._wait_for_ready_prompt()
         assert echo_reply == _ECHO_OFF + b'\r\n' # read back echo of above (no further echoes will come)
         self._assert_empty_buffer()
+        self._serial_port.timeout = None # change to infinite time-out once initialized and in known-good state,
+        # so that waiting for IOTool replies won't cause timeouts
 
     def execute(self, *commands):
         """Run a series of commands on the IOTool microcontroller."""
@@ -88,6 +95,8 @@ class IOTool:
     def start_program(self, *commands, iters=1):
         """Run a program a given number of times. If no commands are given here,
         a program should have been stored previously with store_program().
+
+        After start_program is called, wait_until_done() must subsequently be called.
         """
         if commands:
             self.store_program(*commands)

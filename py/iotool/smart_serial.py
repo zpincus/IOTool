@@ -36,7 +36,7 @@ SerialException = serial.SerialException
 class SerialTimeout(SerialException):
     pass
 
-class Serial(serialposix.PosixSerial):
+class Serial(serialposix.Serial):
     """Serial port class that differs from the python serial library in three
     key ways:
     (1) Read timeouts raise an exception rather than just returning less
@@ -64,7 +64,7 @@ class Serial(serialposix.PosixSerial):
            KeyboardInterrupt, before 'size' bytes have been read, the pending
            bytes read will not be lost but will be available to subsequent read()
            calls."""
-        if not self._isOpen: raise serialposix.portNotOpenError
+        if not self.isOpen(): raise serialposix.portNotOpenError
         if len(self.read_buffer) > size:
             read_buffer = self.read_buffer
             try:
@@ -75,7 +75,7 @@ class Serial(serialposix.PosixSerial):
                 raise k
         while len(self.read_buffer) < size:
             try:
-                ready,_,_ = select.select([self.fd],[],[], self._timeout)
+                ready,_,_ = select.select([self.fd],[],[], self.timeout)
                 # If select was used with a timeout, and the timeout occurs, it
                 # returns with empty lists -> thus abort read operation.
                 # For timeout == 0 (non-blocking operation) also abort when there
@@ -120,7 +120,7 @@ class Serial(serialposix.PosixSerial):
            match is made. If interrupted by a timeout or KeyboardInterrupt before
            the match is made, the pending bytes read will not be lost but will be
            available to subsequent read_until() calls."""
-        if not self._isOpen: raise serialposix.portNotOpenError
+        if not self.isOpen(): raise serialposix.portNotOpenError
         search_start = 0
         ml = len(match)
         while True:
@@ -129,7 +129,7 @@ class Serial(serialposix.PosixSerial):
                 break
             search_start = len(self.read_buffer) - ml + 1
             try:
-                ready,_,_ = select.select([self.fd],[],[], self._timeout)
+                ready,_,_ = select.select([self.fd],[],[], self.timeout)
                 # If select was used with a timeout, and the timeout occurs, it
                 # returns with empty lists -> thus abort read operation.
                 # For timeout == 0 (non-blocking operation) also abort when there
