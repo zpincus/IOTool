@@ -27,8 +27,4 @@ extern USB_ClassInfo_CDC_Device_t serialDevice;
 
 extern uint8_t state;
 
-// Serial Number for Device
-#define SERIAL_NUMBER L"0xFFFF"
-
-
 #endif	/* usb_serial_base_h */

@@ -3,7 +3,7 @@
  *     LUFA Library Copyright (C) Dean Camera, 2014.
  *     dean [at] fourwalledcubicle [dot] com www.lufa-lib.org
  * See License.txt in the LUFA distribution for LUFA license details.
- * 
+ *
  * Based in part on code copyright  2014 Alan Burlison, alan@bleaklow.com.
  * Use is subject to license terms. See LICENSE.txt for details.
  */
@@ -174,39 +174,15 @@ static const USB_Descriptor_Configuration_t PROGMEM configurationDescriptor = {
 };
 
 // Language descriptor.
-static const USB_Descriptor_String_t PROGMEM languageString = {
-    .Header = {
-        .Size = USB_STRING_LEN(1),
-        .Type = DTYPE_String
-    },
-    .UnicodeString = { LANGUAGE_ID_ENG }
-};
+const USB_Descriptor_String_t PROGMEM languageString = USB_STRING_DESCRIPTOR_ARRAY(LANGUAGE_ID_ENG);
 
-// Manufacturer descriptor.
-static const USB_Descriptor_String_t PROGMEM manufacturerString = {
-    .Header = {
-        .Size = USB_STRING_LEN(15),
-        .Type = DTYPE_String
-    },
-    .UnicodeString = L"zplab.wustl.edu"
-};
+// Manufacturer, product, and serial descriptor.
+#define WIDEN(x) L ## #x
+#define USB_STRING_DESCRIPTOR_W(x) USB_STRING_DESCRIPTOR(WIDEN(x))
 
-// Product descriptor.
-static const USB_Descriptor_String_t PROGMEM productString = {
-    .Header = {
-        .Size = USB_STRING_LEN(11),
-        .Type = DTYPE_String
-    },
-    .UnicodeString = L"IOTool"
-};
-
-static const USB_Descriptor_String_t PROGMEM serialString = {
-    .Header = {
-        .Size = USB_STRING_LEN(6),
-        .Type = DTYPE_String
-    },
-    .UnicodeString = SERIAL_NUMBER
-};
+const USB_Descriptor_String_t PROGMEM manufacturerString = USB_STRING_DESCRIPTOR_W(MANUFACTURER);
+const USB_Descriptor_String_t PROGMEM productString = USB_STRING_DESCRIPTOR_W(PRODUCT_NAME);
+const USB_Descriptor_String_t PROGMEM serialString = USB_STRING_DESCRIPTOR_W(SERIAL_NUMBER);
 
 
 // LUFA CDC Class driver interface configuration and state information.

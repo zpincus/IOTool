@@ -12,6 +12,14 @@ LUFA_PATH    = ../lufa-LUFA-140928/LUFA
 # that appears when the device is attached and the reset button is pressed.
 AVRDUDE_PORT = /dev/tty.usbmodem1411
 
+# Variables that control how the USB serial device enumerates to the host.
+# These are especially useful with linux udev rules.
+# Note that "SERIAL_NUMBER" is not actually treated as a hex constant --
+# these are all pasted into unicode strings by macros.
+MANUFACTURER  = zplab.wustl.edu
+PRODUCT_NAME  = IOTool
+SERIAL_NUMBER = 0xFFFF
+
 #############################
 # IOTool Internal Variables #
 #############################
@@ -22,7 +30,8 @@ F_USB        = $(F_CPU)
 OPTIMIZATION = 3
 TARGET       = IOTool
 SRC          = $(wildcard src/*.c) $(LUFA_SRC_USB_DEVICE) $(LUFA_PATH)/Drivers/USB/Class/Device/CDCClassDevice.c
-CC_FLAGS     = $(ARD_PINS) -DUSE_LUFA_CONFIG_HEADER -Isrc -Wall -Werror
+USB_DEFS     = -DMANUFACTURER=$(MANUFACTURER) -DPRODUCT_NAME=$(PRODUCT_NAME) -DSERIAL_NUMBER=$(SERIAL_NUMBER)
+CC_FLAGS     = $(ARD_PINS) $(USB_DEFS) -DUSE_LUFA_CONFIG_HEADER -Isrc -Wall -Werror
 LD_FLAGS     =
 OBJDIR       = build
 
