@@ -50,9 +50,9 @@ class IOTool:
             del self._serial_port
         self._serial_port = smart_serial.Serial(self._serial_port_name, timeout=2)
         self._serial_port.write(b'!\nreset\n')
-        time.sleep(0.5) # give it time to reboot
+        time.sleep(2) # give it time to reboot
         wait_start = time.time()
-        while not os.path.exists(self._config.IOTool.SERIAL_PORT):
+        while not os.path.exists(self._serial_port_name):
             time.sleep(0.1)
             if time.time() - wait_start > 5:
                 raise smart_serial.SerialException('IOTool device did not properly reset!')
