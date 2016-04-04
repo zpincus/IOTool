@@ -25,7 +25,6 @@
 import os
 import time
 
-from . import commands
 from . import smart_serial
 
 _ECHO_OFF = b'\x80\xFF'
@@ -42,7 +41,6 @@ class IOTool:
         except (smart_serial.SerialTimeout, RuntimeError):
             # explicitly clobber traceback from SerialTimeout exception
             raise smart_serial.SerialException('Could not communicate with IOTool device -- is it attached?')
-        self.commands = commands.Commands()
 
     def reset(self):
         """Attempt to reset the IOTool device to a known-good state."""
