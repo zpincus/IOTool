@@ -85,7 +85,8 @@ Installation
     code modifications are made (see 'Porting' below).
 
 2.  Optional: To customize the device's serial number (used on Macs and some Linuxes
-    for determining the tty name), edit the relevant `#define` in `src/usb_serial_base.h`.
+    for determining the tty name), or the manufacturer and product name strings,
+    edit the relevant entries in the Makefile.
 
 3.  Press the reset button to enable the firmware to be loaded, and run `make`
     from the IOTool directory to compile and upload the code.
