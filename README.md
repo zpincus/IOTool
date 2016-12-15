@@ -113,6 +113,7 @@ Scripting Language Specification
     pm p v      set PWM: pin name, uint8 or uint16 value
     ct b        character transmit: uint8 byte
     cr          character receive
+    cg          character goto
     lo i c      loop: uint8 index, uint16 count
     go i        goto: uint8 index
     no          no-op
@@ -198,6 +199,16 @@ command is issued, execution halts until a single byte is sent from the
 computer host to the microcontroller. The contents of this byte are discarded
 and not echoed back to the host. When `ct` commands are run, a single byte
 with the value specified (from 0 to 255) will be transmitted to the host.
+
+**Branch on Serial Data from Host:** `cg`(character goto). If the `cg` command
+is issued, execution halts until a single byte is sent from the computer host
+to the microcontroller. The contents of this byte are used to jump to the
+program step specified by the value of the byte (interpreted as an unsigned
+8-bit integer, not an ASCII digit). The byte will not be echoed back to the
+host. The standard break character (`!`, decimal 33) will cancel the command
+and quit the program, rather than jumping to index 33. If jumping to the
+command at index 33 is required, a no-op could be inserted at 33 and the the
+host could send 34 instead.
 
 **Repeat Commands:** `lo index count` (loop back), and `go index` (goto),
 where 0 ≤ _index_ < 2^8 and 0 ≤ _count_ < 2^16. These commands provide

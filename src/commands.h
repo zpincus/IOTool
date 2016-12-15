@@ -1,6 +1,6 @@
 // Copyright 2014 Zachary Pincus (zpincus@wustl.edu / zplab.wustl.edu)
 // This file is part of IOTool.
-// 
+//
 // IOTool is free software; you can redistribute it and/or modify
 // it under the terms of version 2 of the GNU General Public License as
 // published by the Free Software Foundation.
@@ -30,6 +30,7 @@ void read_digital(void *params);
 void read_analog(void *params);
 void char_receive(void *params);
 void char_transmit(void *params);
+void char_goto(void *params);
 void loop(void *params);
 void goto_(void *params);
 void noop(void *params);

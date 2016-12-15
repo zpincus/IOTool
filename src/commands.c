@@ -198,6 +198,16 @@ void char_receive(void *params) {
     run_serial_tasks_from_isr = true;
 }
 
+void char_goto(void *params) {
+    run_serial_tasks_from_isr = false; // we'll do this ourselves
+    uint8_t data = usb_serial_wait_byte();
+    if (data == QUIT_BYTE) {
+        running = false;
+    }
+    program_counter = data;
+    run_serial_tasks_from_isr = true;
+}
+
 void char_transmit(void *params) {
     uint8_t output = *(uint8_t *) params;
     usb_serial_write_byte(output);

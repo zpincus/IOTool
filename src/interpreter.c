@@ -1,6 +1,6 @@
 // Copyright 2014 Zachary Pincus (zpincus@wustl.edu / zplab.wustl.edu)
 // This file is part of IOTool.
-// 
+//
 // IOTool is free software; you can redistribute it and/or modify
 // it under the terms of version 2 of the GNU General Public License as
 // published by the Free Software Foundation.
@@ -68,13 +68,13 @@ ISR(TIMER3_COMPC_vect) {
     OCR3C += 30000; // fire ISR again in 15 ms (wraparound expected; works great)
 }
 
-void interpreter_init(void) {    
-    
+void interpreter_init(void) {
+
     // Timer/Counter0
     TCCR0A = BIT(WGM00) | BIT(WGM01); // Fast 8-bit PWM (freq=62.5 kHz), no outputs connected
     TIMSK0 = 0; // no interrupts
     TCCR0B = BIT(CS00); // start clock, no prescaling
-    
+
     // Timer/Counter1
     TCCR1A = BIT(WGM11); // set WGM to mode 14: fast PWM; TOP of counter defined by ICR1
     TCCR1B = BIT(WGM13) | BIT(WGM12);
@@ -96,9 +96,9 @@ void interpreter_init(void) {
     TCCR4D = 0; // Fast PWM (WGM bits zero)
     OCR4C = (1<<8)-1; // use 8-bit PWM
     TCCR4B = BIT(CS41); // start clock, prescaler=2 (freq=8 MHz, period=125 ns)
-    
+
     sei(); // enable interrupts
-    
+
     // ADC
     ADCSRA = BIT(ADPS2) | BIT(ADPS0); // prescaler = 32 gives 500 kHz ADC clock: fast, but some resolution loss over 128 kHz
     ADCSRB = BIT(ADHSM); // "high speed mode" purportedly gives better ADC resolution at fast clocks
@@ -128,7 +128,7 @@ void run_program(uint16_t num_iters) {
             uint8_t current_pc = program_counter;
             program_counter++; // increment first to allow functions to manipulate the PC.
             program[current_pc](program_heap + current_pc*HEAP_PER_STEP);
-        }        
+        }
     }
     running = false;
     run_serial_tasks_from_isr = false;
@@ -141,7 +141,7 @@ bool parse_uint8(char **in, uint8_t max, void *dst) {
     if (errno || ulpin > max || old_in == *in) {
         return false;
     }
-    
+
     *(uint8_t *)dst = (uint8_t) ulpin;
     return true;
 }
@@ -165,7 +165,7 @@ bool parse_pin(char **in, void *dst) {
             break;
         }
     }
-    for (uint8_t i = 0; i < NUM_PINS; i++) {        
+    for (uint8_t i = 0; i < NUM_PINS; i++) {
         if (in_ptr[0] == pins[i].name[0] && (pins[i].name[1] == '\0' || in_ptr[1] == pins[i].name[1])) {
             *(uint8_t *)dst = i;
             if (pins[i].name[1] == '\0') {
@@ -209,13 +209,13 @@ void interpret_line(char *line) {
     if (parse_space_to_end(line)) {
         return;
     }
-    
+
     input_action_t action;
     bool success = true;
     uint16_t num_iters = 0;
     uint8_t admux_val = AVCC_ADMUX;
     char *rest;
-    
+
     if (strncmp_P(line, PSTR("program"), 7) == 0) {
             action = PROGRAM;
             rest = line+7;
@@ -254,7 +254,7 @@ void interpret_line(char *line) {
         usb_serial_write_string_P(PSTR("ERROR: Invalid input\n"));
         return;
     }
-    
+
     switch (action) {
         err_t result;
         command_t function;
@@ -305,7 +305,7 @@ void interpret_line(char *line) {
                     break;
                 case NOERR:
                     if (execute_mode == IMMEDIATE){
-                        if (function != &loop && function != &goto_) {
+                        if (function != &loop && function != &goto_ && function != char_goto) {
                             // don't run loops in immediate mode, duh.
                             running = true;
                             run_serial_tasks_from_isr = true;
@@ -333,7 +333,7 @@ err_t add_program_step(char *line, command_t *function_out) {
     if (strlen(line) < 2) {
         return BAD_FUNC;
     }
-    
+
     command_t function;
     char *params = line + 2; // at worst, points to null byte terminating the string
     uint8_t *heap_end = program_heap + program_size*HEAP_PER_STEP;
@@ -416,6 +416,8 @@ err_t add_program_step(char *line, command_t *function_out) {
         success = parse_uint8(&params, 255, heap_end);
     } else if (strncmp_P(line, PSTR("cr"), 2) == 0) {
         function = &char_receive;
+    } else if (strncmp_P(line, PSTR("cg"), 2) == 0) {
+        function = &char_goto;
     } else if (strncmp_P(line, PSTR("lo"), 2) == 0) {
         function = &loop;
         if (num_loop_commands == MAX_LOOP_COMMANDS) {
@@ -434,7 +436,7 @@ err_t add_program_step(char *line, command_t *function_out) {
     } else {
         return BAD_FUNC;
     }
-        
+
     if (!success || !parse_space_to_end(params)) {
         return BAD_PARAM;
     }
