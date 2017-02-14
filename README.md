@@ -141,10 +141,10 @@ pin name (either the AVR port-letter + pin-number format, or the arduino
 format; described below). These commands wait for a stable reading on a given
 pin of a high, low, or different-from-current value (respectively). A "stable"
 reading is defined as pulse lasting longer than the currently set wait time,
-which defaults to 10 µs. This provides protection against stray
-electromagnetic interference. Note that the specified pin is set to input and
-the internal pull-up resistor is enabled before readings are taken. To disable
-the stability check, set the wait time to 0 (see below).
+which defaults to 10 µs. This provides protection against stray electromagnetic
+interference. Note that the internal pull-up resistor is enabled before
+readings are taken. To disable the stability check, set the wait time to 0 (see
+below).
 
 **Set waiting time for stable readings:** `wt time`, where 0 < _time_ < 2^15,
 in microseconds. The `wh`, `wl`, and `wc` commands wait for a pulse to read at
@@ -153,12 +153,13 @@ the desired level for at least this many µs before returning. The default is
 
 **Read a pin's value**: `rd pin` (read digital) and `ra pin` (read analog) read
 the value on a given pin and output the value as `0` or `1` for digital reads,
-or a value in the range [0, 1023] for analog. The analog value returned equals
+or a value in the range [0, 1023] for analog. For digital reads, the wait time
+(above) is used to determine whether the pin is stable before returning a
+reading. To disable this check, set wait time to 0. For digital reads, the
+interal pull-up resistor is enabled. for analog reads, value returned equals
 (1023*v-pin)/v-ref, where v-pin is the voltage on the pin, and v-ref is the
-reference voltage chosen by the `aref` or `avcc` commands (see below). For
-digital reads, the wait time (above) is used to determine whether the pin is
-stable before returning a reading. To disable this check, set wait time to 0.
-NB: Not all pins can be used for analog input (see pin information below).
+reference voltage chosen by the `aref` or `avcc` commands (see below). NB: Not
+all pins can be used for analog input (see pin information below).
 
 **Delay a given interval:** `dm ms` (delay milliseconds) and `du us` (delay
 micoseconds), where 0 ≤ _ms_ < 2^16 and 0 ≤ _us_ < 2^15. Note: these

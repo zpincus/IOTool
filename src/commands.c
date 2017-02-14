@@ -217,7 +217,7 @@ void char_transmit(void *params) {
 void read_digital(void *params) {
     uint8_t pin_number = *(uint8_t *) params;
     SET_PIN_LOW(pin_number, ddr); // set pin for input
-    SET_PIN_LOW(pin_number, port); // disable pullup resistor
+    SET_PIN_HIGH(pin_number, port); // enable pullup resistor
     uint8_t value = GET_PIN(pin_number, pin);
     if (steady_wait_time_half_us) {
         TCCR3B = TIMER3_DISABLE; // disable timer 3 while we set up the compare registers
